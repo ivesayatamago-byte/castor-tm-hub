@@ -196,7 +196,8 @@
         <span id="hGcalSources">Google 日曆來源（抓進來）</span>
         <button id="btnSyncGcal" type="button" class="btn sm" onclick="syncGoogleCalendars()">連接並同步 Google 日曆</button>
       </h2>
-      <div id="pGcalHint" class="item-sub" style="margin-bottom:10px;"></div>
+      <div id="pGcalHint" class="item-sub" style="margin-bottom:4px;"></div>
+      <div id="pGcalLastSync" class="item-sub" style="margin-bottom:10px;font-weight:600;"></div>
       <div class="form-row">
         <input type="text" id="gcalLabel" style="max-width:190px;" />
         <input type="text" id="gcalId" />
@@ -337,11 +338,13 @@
       hGcalSources: "Google 日曆來源（抓進來）",
       btnSyncGcal: "連接並同步 Google 日曆",
       btnAddGcal: "新增日曆",
-      pGcalHint: "僅抓取今天起及未來行程；其他人的日曆需先在對方 Google 日曆分享給你，再填入對方的 Gmail 或日曆 ID。",
+      pGcalHint: "抓好的行程會保留並同步到雲端，重新登入也不會消失；需更新最新行程時再按同步即可。",
+      lastSyncNever: "尚未同步過 Google 日曆",
+      lastSyncFmt: function(ts, count) { return "上次同步：" + ts + "（保留 " + count + " 筆行程）"; },
       gcalLabelPh: "人名 / 日曆名稱（例：我的主日曆、Howar）",
       gcalIdPh: "日曆 ID（自己的填 primary，他人填 Gmail 或日曆 ID）",
       gcalSyncing: "同步中...",
-      gcalSyncedAlert: function(n) { return "已同步完成（已自動去重），目前共有 " + n + " 筆今天起及未來的 Google 日曆行程！"; },
+      gcalSyncedAlert: function(n) { return "已同步完成（已自動去重並存入雲端），目前共有 " + n + " 筆今天起及未來的 Google 日曆行程！"; },
       gcalErrAlert: function(msg) { return "Google 日曆同步失敗：" + msg; },
       gcalBadge: "Google 日曆",
       defaultWho: ["Howar", "Tobias", "Maggy"],
@@ -414,11 +417,13 @@
       hGcalSources: "Google-Kalender-Quellen",
       btnSyncGcal: "Google Kalender verbinden & sync",
       btnAddGcal: "Kalender hinzufügen",
-      pGcalHint: "Lädt Termine ab heute und in der Zukunft. Andere Kalender müssen in Google Kalender geteilt worden sein.",
+      pGcalHint: "Importierte Termine bleiben in der Cloud gespeichert und gehen beim erneuten Login nicht verloren.",
+      lastSyncNever: "Noch nicht mit Google Kalender synchronisiert",
+      lastSyncFmt: function(ts, count) { return "Letzter Sync: " + ts + " (" + count + " Termine)"; },
       gcalLabelPh: "Name / Kalender (z.B. Mein Kalender, Howar)",
       gcalIdPh: "Kalender-ID (eigener: primary, sonst E-Mail / ID)",
       gcalSyncing: "Synchronisiere...",
-      gcalSyncedAlert: function(n) { return "Sync fertig (Duplikate entfernt): " + n + " Termine ab heute."; },
+      gcalSyncedAlert: function(n) { return "Sync fertig (Duplikate entfernt & in Cloud gespeichert): " + n + " Termine ab heute."; },
       gcalErrAlert: function(msg) { return "Google-Kalender-Sync fehlgeschlagen: " + msg; },
       gcalBadge: "Google Kalender",
       defaultWho: ["Howar", "Tobias", "Maggy"],
@@ -483,8 +488,12 @@
   provider.addScope(GCAL_SCOPE);
   const familyDocRef = doc(db, "family_hub", "shared_data");
 
+  let gcalCache = JSON.parse(localStorage.getItem("familyHubGcalCache") || "[]");
+  if (!Array.isArray(gcalCache)) gcalCache = [];
+  let gcalLastSyncAt = localStorage.getItem("familyHubGcalLastSyncAt") || "";
+
   let state = JSON.parse(localStorage.getItem("familyHubData") || "null") || {
-    events: [], trash: [], shop: [], recipes: [], memos: [], customWho: [], customShopCats: [], gcalSources: []
+    events: [], trash: [], shop: [], recipes: [], memos: [], customWho: [], customShopCats: [], gcalSources: [], gcalCache: [], gcalLastSyncAt: ""
   };
   state.trash = (state.trash || []).map(function(tr) { return Object.assign({ done: false }, tr); });
   state.events = (state.events || []).map(function(ev) {
@@ -497,9 +506,16 @@
   if (!Array.isArray(state.gcalSources) || !state.gcalSources.length) {
     state.gcalSources = [{ id: "primary", label: curLang === "de" ? "Mein Kalender" : "我的主日曆", calendarId: "primary", resolvedAccount: "" }];
   }
-
-  let gcalCache = JSON.parse(localStorage.getItem("familyHubGcalCache") || "[]");
-  if (!Array.isArray(gcalCache)) gcalCache = [];
+  if (!gcalCache.length && Array.isArray(state.gcalCache) && state.gcalCache.length) {
+    gcalCache = state.gcalCache.slice();
+    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+  }
+  if (!gcalLastSyncAt && state.gcalLastSyncAt) {
+    gcalLastSyncAt = state.gcalLastSyncAt;
+    localStorage.setItem("familyHubGcalLastSyncAt", gcalLastSyncAt);
+  }
+  state.gcalCache = gcalCache.slice();
+  state.gcalLastSyncAt = gcalLastSyncAt;
 
   let selectedEventKeys = new Set();
   let lastFilteredEventKeys = [];
@@ -509,6 +525,12 @@
     const d = new Date();
     const pad = function(n) { return n < 10 ? "0" + n : String(n); };
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function nowDisplayStamp() {
+    const d = new Date();
+    const pad = function(n) { return n < 10 ? "0" + n : String(n); };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
   }
 
   let selectedWhoList = [];
@@ -530,17 +552,30 @@
       .split("'").join("'");
   }
 
-  function saveState() {
+  function persistAllToLocal() {
+    state.gcalCache = Array.isArray(gcalCache) ? gcalCache.slice() : [];
+    state.gcalLastSyncAt = gcalLastSyncAt || "";
     localStorage.setItem("familyHubData", JSON.stringify(state));
+    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    localStorage.setItem("familyHubGcalLastSyncAt", gcalLastSyncAt);
+  }
+
+  function saveState() {
+    persistAllToLocal();
     renderAll();
     if (currentUser) {
       setDoc(familyDocRef, state).catch(function(e) { alert("Save error: " + e.message); });
     }
   }
 
-  function saveGcalCache(items) {
+  function saveGcalCache(items, syncStamp) {
     gcalCache = Array.isArray(items) ? items : [];
-    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    if (typeof syncStamp === "string") {
+      gcalLastSyncAt = syncStamp;
+    } else if (gcalCache.length) {
+      gcalLastSyncAt = nowDisplayStamp();
+    }
+    persistAllToLocal();
     renderAll();
   }
 
@@ -568,6 +603,18 @@
     if (!btn) return;
     btn.textContent = hidePastTrash ? t.btnShowPastTrash : t.btnHidePastTrash;
     btn.classList.toggle("active", !!hidePastTrash);
+  }
+
+  function renderGcalLastSyncText(t) {
+    const el = document.getElementById("pGcalLastSync");
+    if (!el) return;
+    if (gcalLastSyncAt) {
+      el.textContent = t.lastSyncFmt(gcalLastSyncAt, gcalCache.length);
+    } else if (gcalCache.length) {
+      el.textContent = t.lastSyncFmt("--", gcalCache.length);
+    } else {
+      el.textContent = t.lastSyncNever;
+    }
   }
 
   window.toggleHidePastTrash = function() {
@@ -701,7 +748,6 @@
     state.gcalSources = state.gcalSources.filter(function(s) { return s.id !== id; });
     if (target) {
       gcalCache = gcalCache.filter(function(ev) { return ev.sourceId !== id; });
-      localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
     }
     saveState();
   };
@@ -857,8 +903,8 @@
       const deduped = dedupeGcalEvents(allFetched).sort(function(a, b) {
         return ((a.date || "") + (a.time || "")).localeCompare((b.date || "") + (b.time || ""));
       });
-      localStorage.setItem("familyHubData", JSON.stringify(state));
-      saveGcalCache(deduped);
+      const stamp = nowDisplayStamp();
+      saveGcalCache(deduped, stamp);
       if (currentUser) {
         setDoc(familyDocRef, state).catch(function() {});
       }
@@ -930,7 +976,6 @@
     }
     if (gcalDelIds.size) {
       gcalCache = gcalCache.filter(function(x) { return !gcalDelIds.has(String(x.id)); });
-      localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
     }
     selectedEventKeys.clear();
     saveState();
@@ -938,15 +983,13 @@
 
   window.clearPastEvents = function() {
     gcalCache = gcalCache.filter(function(ev) { return !ev.date || dayDiff(ev.date) >= 0; });
-    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
-    renderAll();
+    saveState();
   };
 
   window.delGcalEvent = function(id) {
     selectedEventKeys.delete("gcal:" + String(id));
     gcalCache = gcalCache.filter(function(ev) { return String(ev.id) !== String(id); });
-    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
-    renderAll();
+    saveState();
   };
 
   window.handleAuthClick = function() {
@@ -970,6 +1013,15 @@
       unsubscribeDoc = onSnapshot(familyDocRef, function(snap) {
         if (snap.exists()) {
           const d = snap.data();
+          const cloudGcal = Array.isArray(d.gcalCache) ? d.gcalCache : [];
+          if (cloudGcal.length) {
+            gcalCache = dedupeGcalEvents(cloudGcal);
+          } else if (gcalCache.length) {
+            gcalCache = dedupeGcalEvents(gcalCache);
+          }
+          if (d.gcalLastSyncAt) {
+            gcalLastSyncAt = d.gcalLastSyncAt;
+          }
           state = {
             events: (d.events || []).map(function(ev) {
               return Object.assign({}, ev, { whoList: Array.isArray(ev.whoList) ? ev.whoList : (ev.who ? [ev.who] : []) });
@@ -982,9 +1034,14 @@
             customShopCats: Array.isArray(d.customShopCats) ? d.customShopCats : [],
             gcalSources: Array.isArray(d.gcalSources) && d.gcalSources.length
               ? d.gcalSources
-              : [{ id: "primary", label: I18N[curLang].gcalBadge, calendarId: "primary", resolvedAccount: "" }]
+              : [{ id: "primary", label: I18N[curLang].gcalBadge, calendarId: "primary", resolvedAccount: "" }],
+            gcalCache: gcalCache.slice(),
+            gcalLastSyncAt: gcalLastSyncAt || ""
           };
-          localStorage.setItem("familyHubData", JSON.stringify(state));
+          persistAllToLocal();
+          if (!cloudGcal.length && gcalCache.length) {
+            setDoc(familyDocRef, state).catch(function() {});
+          }
           renderAll();
         } else {
           saveState();
@@ -1658,6 +1715,7 @@
   }
 
   function renderGcalSources(t) {
+    renderGcalLastSyncText(t);
     const ul = document.getElementById("gcalSourceList");
     if (!ul) return;
     const sources = state.gcalSources || [];
@@ -1721,6 +1779,7 @@
     document.getElementById("btnSyncGcal").textContent = t.btnSyncGcal;
     document.getElementById("btnAddGcal").textContent = t.btnAddGcal;
     document.getElementById("pGcalHint").textContent = t.pGcalHint;
+    renderGcalLastSyncText(t);
     document.getElementById("gcalLabel").placeholder = t.gcalLabelPh;
     document.getElementById("gcalId").placeholder = t.gcalIdPh;
 
