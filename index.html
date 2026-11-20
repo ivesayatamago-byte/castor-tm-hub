@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Family Hub" />
+  <title>Castor家小管家</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --primary: #2563eb; --text: #1f2937;
+      --muted: #6b7280; --border: #e5e7eb; --danger: #dc2626;
+      --warn-bg: #fef3c7; --warn-text: #92400e; --ok-bg: #dcfce7; --ok-text: #166534;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 84px; }
+    header {
+      background: var(--card); padding: 10px 14px; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+      position: sticky; top: 0; z-index: 20;
+    }
+    .header-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    header h1 { margin: 0; font-size: 1rem; }
+    .sync-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-text); white-space: nowrap; }
+    .sync-badge.online { background: var(--ok-bg); color: var(--ok-text); }
+    .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .lang-switch button { border: none; background: #fff; padding: 5px 8px; font-size: 0.76rem; cursor: pointer; color: var(--muted); font-weight: 600; }
+    .lang-switch button.active { background: var(--primary); color: #fff; }
+    .auth-btn { border: 1px solid var(--border); background: #fff; padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .auth-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    main { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); margin-bottom: 16px; }
+    .card h2 { margin: 0 0 12px 0; font-size: 1.02rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .alert-banner {
+      background: #fffbeb; border: 1px solid #fcd34d; border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 16px;
+    }
+    .alert-banner-title { font-weight: 700; font-size: 0.94rem; color: #92400e; margin-bottom: 6px; }
+    .alert-banner-list { list-style: none; margin: 0; padding: 0; }
+    .alert-banner-list li {
+      padding: 5px 0; border-top: 1px dashed #fde68a; font-size: 0.88rem;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; cursor: pointer;
+    }
+    .alert-banner-list li:first-child { border-top: none; padding-top: 0; }
+    .alert-banner-list li:last-child { padding-bottom: 0; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.95rem; background: #fff; color: var(--text); flex: 1; min-width: 120px; }
+    textarea { width: 100%; min-height: 80px; resize: vertical; }
+    button.btn { padding: 10px 16px; border: none; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; background: var(--primary); color: #fff; white-space: nowrap; }
+    button.btn.secondary { background: #f3f4f6; color: var(--text); }
+    button.btn.danger { background: #fee2e2; color: var(--danger); }
+    button.btn.sm { padding: 6px 10px; font-size: 0.8rem; border-radius: 8px; }
+    .row-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .ev-check { width: 17px; height: 17px; min-width: 17px; margin: 0; cursor: pointer; flex: none; }
+    .combo-wrap, .who-picker-wrap { position: relative; flex: 1.5; min-width: 200px; }
+    .who-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; min-height: 42px; }
+    .who-chip { display: inline-flex; align-items: center; gap: 4px; background: #dbeafe; color: #1e40af; font-size: 0.84rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+    .who-chip button { border: none; background: none; color: #1e40af; font-weight: 700; cursor: pointer; padding: 0 2px; }
+    .who-input { border: none !important; outline: none; padding: 4px 2px !important; min-width: 80px !important; flex: 1; background: transparent !important; }
+    .dropdown-panel { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); z-index: 40; max-height: 180px; overflow-y: auto; display: none; }
+    .dropdown-panel.open { display: block; }
+    .dropdown-item { padding: 9px 12px; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+    .dropdown-item:hover { background: #eff6ff; color: var(--primary); }
+    .hint { font-size: 0.75rem; color: var(--muted); }
+    .list { list-style: none; padding: 0; margin: 0; }
+    .list li { padding: 11px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .list li:last-child { border-bottom: none; }
+    .item-main { flex: 1; }
+    .item-title { font-weight: 600; font-size: 0.96rem; }
+    .item-sub { font-size: 0.83rem; color: var(--muted); margin-top: 3px; }
+    .done .item-title, .done .trash-date-text { text-decoration: line-through; color: var(--muted); }
+    .qty-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 0.8rem; font-weight: 700; margin-left: 6px; }
+    .check-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.86rem; font-weight: 600; padding: 4px 8px; border-radius: 8px; background: #f9fafb; border: 1px solid var(--border); white-space: nowrap; }
+    .check-label input[type="checkbox"] { width: 17px; height: 17px; min-width: 17px; margin: 0; cursor: pointer; }
+    .quota-box { padding: 10px 12px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; margin-bottom: 12px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .quota-box.warn { background: var(--warn-bg); color: var(--warn-text); border-color: #fcd34d; }
+    .quota-box.over { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.76rem; font-weight: 600; margin-right: 6px; white-space: nowrap; }
+    .tag-today { background: #fee2e2; color: #b91c1c; }
+    .tag-tomorrow { background: #fef3c7; color: #b45309; }
+    .tag-future { background: #e0e7ff; color: #3730a3; }
+    .tag-cat { background: #f3f4f6; color: #374151; }
+    .tag-who { background: #dbeafe; color: #1d4ed8; }
+    .tag-gcal { background: #dcfce7; color: #166534; }
+    .tag-src { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .bin-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+    .bin-bio { background: #16a34a; color: #ffffff; }
+    .bin-gelb { background: #facc15; color: #1f2937; }
+    .bin-papier { background: #2563eb; color: #ffffff; }
+    .bin-rest { background: #111827; color: #ffffff; }
+    .bin-sonder { background: #ffffff; color: #1f2937; border: 1px solid #cbd5e1; }
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table.trash-table { width: 100%; border-collapse: collapse; min-width: 520px; font-size: 0.92rem; }
+    table.trash-table th { text-align: left; padding: 10px 10px; border-bottom: 2px solid var(--border); color: var(--muted); font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+    table.trash-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    table.trash-table tr:last-child td { border-bottom: none; }
+    .th-type-filter { display: inline-flex; align-items: center; gap: 6px; }
+    .th-type-filter select { padding: 4px 8px; font-size: 0.8rem; border-radius: 8px; min-width: 0; flex: none; font-weight: 600; color: var(--text); }
+    .trash-date-text { font-weight: 600; white-space: nowrap; }
+    .trash-note-sub { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .bulk-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+    .cal-month-title { font-weight: 700; font-size: 0.96rem; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+    .cal-dow { font-size: 0.76rem; font-weight: 700; color: var(--muted); padding: 4px 0; text-align: center; }
+    .cal-cell { min-height: 76px; border: 1px solid var(--border); border-radius: 8px; padding: 4px; background: #fff; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+    .cal-cell.empty { background: #f9fafb; border-color: transparent; }
+    .cal-cell.is-today { border-color: var(--primary); background: #eff6ff; }
+    .cal-day-num { font-size: 0.78rem; font-weight: 700; line-height: 1.1; padding: 0 2px; }
+    .cal-pill { font-size: 0.69rem; font-weight: 700; line-height: 1.25; padding: 2px 5px; border-radius: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-align: left; }
+    .cal-pill:hover { filter: brightness(0.95); }
+    .cal-pill.is-done { text-decoration: line-through; opacity: 0.55; }
+    .cal-pill-event { background: #ede9fe; color: #5b21b6; }
+    .cal-pill-gcal { background: #d1fae5; color: #065f46; }
+    .memo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 8px; }
+    .memo-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fffbeb; border-color: #fde68a; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+    .memo-item.pinned { background: #fef3c7; border-color: #f59e0b; }
+    .memo-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+    .memo-title { font-weight: 700; font-size: 0.94rem; color: #78350f; }
+    .memo-body { font-size: 0.9rem; color: #1f2937; white-space: pre-wrap; word-break: break-word; line-height: 1.45; }
+    .memo-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 4px; }
+    .memo-time { font-size: 0.74rem; color: #92400e; }
+    .memo-actions { display: flex; gap: 4px; }
+    nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 4px; z-index: 30; }
+    nav.bottom-nav button { background: none; border: none; color: var(--muted); font-size: 0.76rem; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 8px; }
+    nav.bottom-nav button.active { color: var(--primary); font-weight: 700; }
+    nav.bottom-nav span.icon { font-size: 1.25rem; }
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+    .recipe-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .recipe-ing { background: #f9fafb; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin: 8px 0; white-space: pre-line; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1 id="appTitle">Castor家小管家</h1>
+    <span id="syncStatus" class="sync-badge">本機模式</span>
+  </div>
+  <div class="header-right">
+    <div class="lang-switch">
+      <button id="lang-zh" type="button" onclick="setLang('zh')">中文</button>
+      <button id="lang-de" type="button" onclick="setLang('de')">DE</button>
+    </div>
+    <button id="authBtnTop" type="button" class="auth-btn primary" onclick="handleAuthClick()">Google 登入同步</button>
+  </div>
+</header>
+
+<main>
+  <section id="page-home" class="tab-page active">
+    <div id="upcomingBanner" class="alert-banner" style="display:none;"></div>
+    <div class="card">
+      <h2 id="hHomeCalendar">近期行事曆（倒垃圾＋行程約診）</h2>
+      <div id="homeTrashQuota"></div>
+      <div id="homeCalendarBox"></div>
+    </div>
+    <div class="card">
+      <h2 id="hHomeMemo">家庭備忘錄</h2>
+      <div class="form-row">
+        <input type="text" id="memoTitle" style="max-width:220px;" />
+        <input type="text" id="memoText" onkeydown="handleMemoEnter(event)" />
+        <button id="btnAddMemo" type="button" class="btn" onclick="addMemo()">新增</button>
+      </div>
+      <div id="homeMemoList"></div>
+    </div>
+  </section>
+
+  <section id="page-events" class="tab-page">
+    <div class="card">
+      <h2 id="hAddEvent">新增行程 / 約診 / 約會</h2>
+      <div class="form-row">
+        <input type="date" id="evDate" />
+        <input type="time" id="evTime" />
+        <div class="who-picker-wrap" id="whoPickerWrap">
+          <div class="who-box" onclick="focusWhoInput()">
+            <div id="selectedWhoChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            <input type="text" id="evWhoInput" class="who-input" autocomplete="off"
+              onfocus="openWhoDropdown()" oninput="renderWhoDropdown()" onkeydown="handleWhoKeydown(event)" />
+          </div>
+          <div id="whoDropdown" class="dropdown-panel"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="text" id="evTitle" />
+        <input type="text" id="evNote" />
+        <button id="btnAddEvent" type="button" class="btn" onclick="addEvent()">新增</button>
+        <button id="btnCancelEditEvent" type="button" class="btn secondary" style="display:none;" onclick="cancelEditEvent()">取消</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span id="hGcalSources">Google 日曆來源（抓進來）</span>
+        <button id="btnSyncGcal" type="button" class="btn sm" onclick="syncGoogleCalendars()">連接並同步 Google 日曆</button>
+      </h2>
+      <div id="pGcalHint" class="item-sub" style="margin-bottom:10px;"></div>
+      <div class="form-row">
+        <input type="text" id="gcalLabel" style="max-width:190px;" />
+        <input type="text" id="gcalId" />
+        <button id="btnAddGcal" type="button" class="btn sm secondary" onclick="addGcalSource()">新增日曆</button>
+      </div>
+      <ul id="gcalSourceList" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <h2>
+        <span id="hAllEvents">所有行程清單</span>
+        <div class="row-actions">
+          <button id="btnSelectAllEvents" type="button" class="btn sm secondary" onclick="toggleSelectAllFilteredEvents()">全選</button>
+          <button id="btnBatchDelEvents" type="button" class="btn sm danger" onclick="batchDeleteEvents()">批次刪除已勾選</button>
+          <button id="btnClearPastEvents" type="button" class="btn sm danger" onclick="clearPastEvents()">清除已過期</button>
+        </div>
+      </h2>
+      <div class="form-row">
+        <input type="text" id="evSearch" oninput="applyEventFilter()" onchange="applyEventFilter()" />
+        <select id="evFilterWho" onchange="applyEventFilter()" style="max-width:210px;"></select>
+        <button id="btnFilterEvents" type="button" class="btn sm" onclick="applyEventFilter()">篩選</button>
+      </div>
+      <ul id="eventList" class="list"></ul>
+    </div>
+  </section>
+
+  <section id="page-trash" class="tab-page">
+    <div class="card">
+      <h2 id="hAddTrash">新增倒垃圾日期</h2>
+      <div id="trashQuotaBox"></div>
+      <div class="form-row">
+        <input type="date" id="trDate" onchange="renderAll()" />
+        <select id="trType"></select>
+        <input type="text" id="trNote" />
+        <button id="btnAddTrash" type="button" class="btn" onclick="addTrash()">新增</button>
+      </div>
+      <details style="margin-top:10px;">
+        <summary id="sumBulkTrash" style="cursor:pointer; color:var(--primary); font-size:0.9rem; font-weight:600;">批次匯入多筆日期清單</summary>
+        <p id="pBulkHint" style="font-size:0.84rem; color:var(--muted); margin:6px 0;"></p>
+        <textarea id="trBulk"></textarea>
+        <div class="bulk-toolbar">
+          <select id="trBulkType" style="max-width:260px;"></select>
+          <button id="btnBulkTrash" type="button" class="btn sm" onclick="bulkAddTrash()">批次匯入</button>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <h2>
+        <span id="hTrashList">垃圾清運日曆清單</span>
+        <button id="btnToggleHidePastTrash" type="button" class="btn sm secondary" onclick="toggleHidePastTrash()">隱藏已過期</button>
+      </h2>
+      <div id="trashList" class="table-wrap"></div>
+    </div>
+  </section>
+
+  <section id="page-shop" class="tab-page">
+    <div class="card">
+      <h2 id="hAddShop">新增購物項目</h2>
+      <div class="form-row">
+        <div class="combo-wrap" id="shopCatPickerWrap">
+          <input type="text" id="shCatInput" autocomplete="off"
+            onfocus="openShopCatDropdown()" oninput="renderShopCatDropdown()" onkeydown="handleShopCatKeydown(event)" />
+          <div id="shopCatDropdown" class="dropdown-panel"></div>
+        </div>
+        <input type="text" id="shName" onkeydown="handleShopEnter(event)" />
+        <input type="text" id="shQty" style="max-width:140px;" onkeydown="handleShopEnter(event)" />
+        <button id="btnAddShop" type="button" class="btn" onclick="addShop()">加入</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span id="hShopList">採買清單</span> <button id="btnClearDoneShop" type="button" class="btn sm danger" onclick="clearDoneShop()">清除已買</button></h2>
+      <div class="form-row">
+        <select id="shFilterCat" onchange="renderAll()" style="max-width:220px;"></select>
+      </div>
+      <ul id="shopList" class="list"></ul>
+    </div>
+  </section>
+
+  <section id="page-recipes" class="tab-page">
+    <div class="card">
+      <h2 id="hAddRecipe">新增家庭食譜</h2>
+      <div class="form-row">
+        <input type="text" id="rcTitle" />
+        <input type="text" id="rcTag" style="max-width:190px;" />
+      </div>
+      <div class="form-row"><textarea id="rcIng"></textarea></div>
+      <div class="form-row"><textarea id="rcSteps"></textarea></div>
+      <button id="btnAddRecipe" type="button" class="btn" onclick="addRecipe()">儲存食譜</button>
+    </div>
+    <div id="recipeList"></div>
+  </section>
+</main>
+
+<nav class="bottom-nav">
+  <button id="nav-home" type="button" class="active" onclick="switchTab('home')"><span class="icon">🏠</span><span id="lblNavHome">總覽</span></button>
+  <button id="nav-events" type="button" onclick="switchTab('events')"><span class="icon">📅</span><span id="lblNavEvents">行程約診</span></button>
+  <button id="nav-trash" type="button" onclick="switchTab('trash')"><span class="icon">🗑️</span><span id="lblNavTrash">倒垃圾</span></button>
+  <button id="nav-shop" type="button" onclick="switchTab('shop')"><span class="icon">🛒</span><span id="lblNavShop">購物清單</span></button>
+  <button id="nav-recipes" type="button" onclick="switchTab('recipes')"><span class="icon">🍳</span><span id="lblNavRecipes">食譜</span></button>
+</nav>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const GENERAL_WASTE_YEARLY_LIMIT = 4;
+  const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+
+  const I18N = {
+    zh: {
+      appTitle: "Castor家小管家", localMode: "本機模式", cloudSyncing: "雲端同步中",
+      loginBtn: "Google 登入同步", logoutBtn: "登出",
+      navHome: "總覽", navEvents: "行程約診", navTrash: "倒垃圾", navShop: "購物清單", navRecipes: "食譜",
+      upcomingBannerTitle: "未來 2 天內提醒",
+      hHomeCalendar: "近期行事曆（倒垃圾＋行程約診）",
+      hHomeMemo: "家庭備忘錄",
+      memoTitlePh: "標題（選填，例：Wi-Fi、包裹）",
+      memoTextPh: "輸入備忘事項內容...",
+      memoPin: "置頂", memoUnpin: "取消置頂", memoEdit: "編輯",
+      memoEditPrompt: "修改備忘錄內容：",
+      emptyMemo: "目前沒有備忘錄，隨手記一筆吧！",
+      dows: ["日", "一", "二", "三", "四", "五", "六"],
+      monthFmt: function(y, m) { return y + " 年 " + m + " 月"; },
+      todayBtn: "今天",
+      shortBio: "Bio", shortGelb: "Gelb", shortPapier: "Papier", shortRest: "Rest", shortSonder: "Sonder",
+      hAddEvent: "新增行程 / 約診 / 約會",
+      hEditEvent: "編輯行程 / 約診 / 約會",
+      btnSaveEvent: "儲存修改",
+      btnCancel: "取消",
+      hAllEvents: "所有行程清單",
+      btnFilter: "篩選",
+      btnSelectAll: "全選",
+      btnDeselectAll: "取消全選",
+      btnBatchDel: "批次刪除已勾選",
+      alertSelectEventsFirst: "請先勾選要刪除的行程",
+      confirmBatchDelEvents: function(n) { return "確定刪除已勾選的 " + n + " 筆行程？"; },
+      hGcalSources: "Google 日曆來源（抓進來）",
+      btnSyncGcal: "連接並同步 Google 日曆",
+      btnAddGcal: "新增日曆",
+      pGcalHint: "僅抓取今天起及未來行程；其他人的日曆需先在對方 Google 日曆分享給你，再填入對方的 Gmail 或日曆 ID。",
+      gcalLabelPh: "人名 / 日曆名稱（例：我的主日曆、Howar）",
+      gcalIdPh: "日曆 ID（自己的填 primary，他人填 Gmail 或日曆 ID）",
+      gcalSyncing: "同步中...",
+      gcalSyncedAlert: function(n) { return "已同步完成（已自動去重），目前共有 " + n + " 筆今天起及未來的 Google 日曆行程！"; },
+      gcalErrAlert: function(msg) { return "Google 日曆同步失敗：" + msg; },
+      gcalBadge: "Google 日曆",
+      defaultWho: ["Howar", "Tobias", "Maggy"],
+      whoInputPh: "打字搜尋或新增對象（可選多個）...",
+      whoAddNewHint: "新增對象", whoSavedHint: "已存選項", whoPresetHint: "常用",
+      evSearchPh: "搜尋事項、對象或備註...", filterAllWho: "全部對象",
+      evTitlePh: "事項名稱（例：看牙醫、晚餐約會）",
+      evNotePh: "地點或備註（例：帶證件、10:00前到）",
+      btnAdd: "新增", btnEdit: "編輯", btnDel: "刪除",
+      hAddTrash: "新增倒垃圾日期", hTrashList: "垃圾清運日曆清單",
+      btnHidePastTrash: "隱藏已過期",
+      btnShowPastTrash: "顯示已過期",
+      filterAllTrashType: "全部",
+      colDate: "日期", colType: "種類", colExpired: "是否過期", colDone: "已丟到", colAction: "刪除",
+      trashTypes: ["Restmülltonne", "Biotonne", "Gelbe Tonne", "Papiertonne", "Sonderabfall"],
+      trNotePh: "備註（選填）",
+      sumBulkTrash: "批次匯入多筆日期清單",
+      pBulkHint: "每行一個日期，格式：DD MM YYYY 或 DD.MM.YYYY（可含 * 號）",
+      trBulkPh: "23 01 2026\n20.02.2026\n16.05.2026 *",
+      btnBulkTrash: "批次匯入", btnClearPast: "清除已過期", checkedTrash: "已丟到",
+      quotaText: function(y, u, l, r) { return y + " 年 Restmülltonne：已丟 " + u + " / " + l + " 次（剩餘 " + r + " 次）"; },
+      quotaFullWarning: function(y, l) { return y + " 年 Restmülltonne 已達上限 " + l + " 次！"; },
+      alertQuotaFull: function(y, l) { return "注意：" + y + " 年 Restmülltonne 已達年度上限 " + l + " 次！"; },
+      hAddShop: "新增購物項目", hShopList: "採買清單",
+      defaultShopCats: ["超市大賣場", "飲料專賣店", "寵物用品", "Baumarkt", "亞洲超市"],
+      shCatPh: "商場種類（單選，打字可篩選或新增）",
+      shNamePh: "品項名稱（例：牛奶、雞蛋）", shQtyPh: "數量（例：2 瓶）",
+      filterAllShopCat: "全部商場", btnJoin: "加入", btnClearDone: "清除已買",
+      hAddRecipe: "新增家庭食譜", rcTitlePh: "料理名稱", rcTagPh: "分類（例：家常菜、烘焙點心）",
+      rcIngPh: "食材清單（每行一項）", rcStepsPh: "料理步驟與秘訣...",
+      btnSaveRecipe: "儲存食譜", btnIngToShop: "食材加入購物", ingLabel: "食材：",
+      today: "今天", tomorrow: "明天", inDays: function(d) { return d + " 天後"; }, expired: "已過期",
+      emptyEvents: "目前沒有行程紀錄",
+      emptyTrash: "尚無符合的倒垃圾日期",
+      emptyShop: "購物車是空的",
+      emptyRecipes: "還沒有儲存食譜",
+      alertDateTitle: "請填寫日期與事項名稱", alertTrashDate: "請選擇倒垃圾日期",
+      alertBulkErr: "格式不符，請確認每行為 DD MM YYYY 或 DD.MM.YYYY",
+      alertBulkOk: function(n) { return "成功匯入 " + n + " 筆倒垃圾日期！"; },
+      alertRecipeTitle: "請填寫料理名稱", confirmDelRecipe: "確定刪除此食譜？",
+      alertIngAdded: function(n) { return "已將 " + n + " 項食材加入購物清單！"; }
+    },
+    de: {
+      appTitle: "Castor Familienplaner", localMode: "Lokal", cloudSyncing: "Cloud-Sync aktiv",
+      loginBtn: "Google Login", logoutBtn: "Abmelden",
+      navHome: "Übersicht", navEvents: "Termine", navTrash: "Müllabfuhr", navShop: "Einkauf", navRecipes: "Rezepte",
+      upcomingBannerTitle: "In den nächsten 2 Tagen",
+      hHomeCalendar: "Kalender (Müllabfuhr + Termine)",
+      hHomeMemo: "Familien-Notizen",
+      memoTitlePh: "Titel (optional, z.B. WLAN, Paket)",
+      memoTextPh: "Notiz eingeben...",
+      memoPin: "Anpinnen", memoUnpin: "Lösen", memoEdit: "Bearbeiten",
+      memoEditPrompt: "Notiz bearbeiten:",
+      emptyMemo: "Noch keine Notizen vorhanden",
+      dows: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+      monthFmt: function(y, m) { return m + "/" + y; },
+      todayBtn: "Heute",
+      shortBio: "Bio", shortGelb: "Gelb", shortPapier: "Papier", shortRest: "Rest", shortSonder: "Sonder",
+      hAddEvent: "Termin hinzufügen",
+      hEditEvent: "Termin bearbeiten",
+      btnSaveEvent: "Änderung speichern",
+      btnCancel: "Abbrechen",
+      hAllEvents: "Alle Termine",
+      btnFilter: "Filtern",
+      btnSelectAll: "Alle wählen",
+      btnDeselectAll: "Auswahl aufheben",
+      btnBatchDel: "Ausgewählte löschen",
+      alertSelectEventsFirst: "Bitte zuerst Termine auswählen",
+      confirmBatchDelEvents: function(n) { return n + " ausgewählte Termine löschen?"; },
+      hGcalSources: "Google-Kalender-Quellen",
+      btnSyncGcal: "Google Kalender verbinden & sync",
+      btnAddGcal: "Kalender hinzufügen",
+      pGcalHint: "Lädt Termine ab heute und in der Zukunft. Andere Kalender müssen in Google Kalender geteilt worden sein.",
+      gcalLabelPh: "Name / Kalender (z.B. Mein Kalender, Howar)",
+      gcalIdPh: "Kalender-ID (eigener: primary, sonst E-Mail / ID)",
+      gcalSyncing: "Synchronisiere...",
+      gcalSyncedAlert: function(n) { return "Sync fertig (Duplikate entfernt): " + n + " Termine ab heute."; },
+      gcalErrAlert: function(msg) { return "Google-Kalender-Sync fehlgeschlagen: " + msg; },
+      gcalBadge: "Google Kalender",
+      defaultWho: ["Howar", "Tobias", "Maggy"],
+      whoInputPh: "Tippen zum Suchen oder Hinzufügen...",
+      whoAddNewHint: "Neu anlegen", whoSavedHint: "Gespeichert", whoPresetHint: "Standard",
+      evSearchPh: "Termin, Person oder Notiz suchen...", filterAllWho: "Alle Personen",
+      evTitlePh: "Titel (z.B. Zahnarzt)",
+      evNotePh: "Ort oder Notiz",
+      btnAdd: "Hinzufügen", btnEdit: "Bearbeiten", btnDel: "Löschen",
+      hAddTrash: "Abfuhrtermin hinzufügen", hTrashList: "Müllabfuhr-Kalender",
+      btnHidePastTrash: "Vergangene ausblenden",
+      btnShowPastTrash: "Vergangene einblenden",
+      filterAllTrashType: "Alle",
+      colDate: "Datum", colType: "Müllart", colExpired: "Status", colDone: "Erledigt", colAction: "Löschen",
+      trashTypes: ["Restmülltonne", "Biotonne", "Gelbe Tonne", "Papiertonne", "Sonderabfall"],
+      trNotePh: "Notiz (optional)",
+      sumBulkTrash: "Mehrere Termine importieren",
+      pBulkHint: "Ein Datum pro Zeile: TT MM JJJJ oder TT.MM.JJJJ (mit * möglich)",
+      trBulkPh: "23 01 2026\n20.02.2026\n16.05.2026 *",
+      btnBulkTrash: "Importieren", btnClearPast: "Vergangene löschen", checkedTrash: "Erledigt",
+      quotaText: function(y, u, l, r) { return y + " Restmülltonne: " + u + " / " + l + " (" + r + " übrig)"; },
+      quotaFullWarning: function(y, l) { return y + " Limit von " + l + " erreicht!"; },
+      alertQuotaFull: function(y, l) { return "Hinweis: " + y + " Limit von " + l + " erreicht!"; },
+      hAddShop: "Artikel hinzufügen", hShopList: "Einkaufsliste",
+      defaultShopCats: ["Supermarkt", "Getränkemarkt", "Tierbedarf", "Baumarkt", "Asiamarkt"],
+      shCatPh: "Geschäft / Markt",
+      shNamePh: "Artikel (z.B. Milch)", shQtyPh: "Menge (z.B. 2x)",
+      filterAllShopCat: "Alle Geschäfte", btnJoin: "Hinzufügen", btnClearDone: "Erledigte löschen",
+      hAddRecipe: "Neues Rezept", rcTitlePh: "Gerichtname", rcTagPh: "Kategorie",
+      rcIngPh: "Zutaten (eine pro Zeile)", rcStepsPh: "Zubereitung...",
+      btnSaveRecipe: "Rezept speichern", btnIngToShop: "Zutaten auf Einkaufsliste", ingLabel: "Zutaten:",
+      today: "Heute", tomorrow: "Morgen", inDays: function(d) { return "in " + d + " Tagen"; }, expired: "Vorbei",
+      emptyEvents: "Noch keine Termine",
+      emptyTrash: "Keine passenden Abfuhrtermine",
+      emptyShop: "Einkaufsliste ist leer",
+      emptyRecipes: "Noch keine Rezepte",
+      alertDateTitle: "Bitte Datum und Titel eingeben", alertTrashDate: "Bitte Datum auswählen",
+      alertBulkErr: "Ungültiges Format. Bitte TT MM JJJJ oder TT.MM.JJJJ verwenden",
+      alertBulkOk: function(n) { return n + " Termine importiert!"; },
+      alertRecipeTitle: "Bitte Gerichtname eingeben", confirmDelRecipe: "Rezept löschen?",
+      alertIngAdded: function(n) { return n + " Zutaten hinzugefügt!"; }
+    }
+  };
+
+  const ALL_DEFAULT_CATS = ["超市大賣場", "Supermarkt"];
+
+  let curLang = localStorage.getItem("familyHubLang") === "de" ? "de" : "zh";
+  const firebaseConfig = {
+    apiKey: "AIzaSyCrN22uEJH8C3ktPfg80b5PPFEVYuq3BT0",
+    authDomain: "castor-tm.firebaseapp.com",
+    projectId: "castor-tm",
+    storageBucket: "castor-tm.firebasestorage.app",
+    messagingSenderId: "616529636378",
+    appId: "1:616529636378:web:63710701a51a68e20f75a3",
+    measurementId: "G-GVP1KTK08Q"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+  provider.addScope(GCAL_SCOPE);
+  const familyDocRef = doc(db, "family_hub", "shared_data");
+
+  let state = JSON.parse(localStorage.getItem("familyHubData") || "null") || {
+    events: [], trash: [], shop: [], recipes: [], memos: [], customWho: [], customShopCats: [], gcalSources: []
+  };
+  state.trash = (state.trash || []).map(function(tr) { return Object.assign({ done: false }, tr); });
+  state.events = (state.events || []).map(function(ev) {
+    return Object.assign({}, ev, { whoList: Array.isArray(ev.whoList) ? ev.whoList : (ev.who ? [ev.who] : []) });
+  });
+  state.shop = (state.shop || []).map(function(s) { return Object.assign({ qty: "" }, s); });
+  state.memos = Array.isArray(state.memos) ? state.memos : [];
+  state.customWho = Array.isArray(state.customWho) ? state.customWho : [];
+  state.customShopCats = Array.isArray(state.customShopCats) ? state.customShopCats : [];
+  if (!Array.isArray(state.gcalSources) || !state.gcalSources.length) {
+    state.gcalSources = [{ id: "primary", label: curLang === "de" ? "Mein Kalender" : "我的主日曆", calendarId: "primary", resolvedAccount: "" }];
+  }
+
+  let gcalCache = JSON.parse(localStorage.getItem("familyHubGcalCache") || "[]");
+  if (!Array.isArray(gcalCache)) gcalCache = [];
+
+  let selectedEventKeys = new Set();
+  let lastFilteredEventKeys = [];
+  let hidePastTrash = true;
+
+  function todayIso() {
+    const d = new Date();
+    const pad = function(n) { return n < 10 ? "0" + n : String(n); };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  let selectedWhoList = [];
+  let editingEventId = null;
+  let selectedTrashFilter = "__ALL__";
+  let currentUser = null;
+  let gcalAccessToken = null;
+  let unsubscribeDoc = null;
+  let calYear = new Date().getFullYear();
+  let calMonth = new Date().getMonth();
+
+  function esc(s) {
+    const amp = String.fromCharCode(38);
+    return String(s == null ? "" : s)
+      .split(amp).join(amp + "amp;")
+      .split("<").join(amp + "lt;")
+      .split(">").join(amp + "gt;")
+      .split('"').join(amp + "quot;")
+      .split("'").join("'");
+  }
+
+  function saveState() {
+    localStorage.setItem("familyHubData", JSON.stringify(state));
+    renderAll();
+    if (currentUser) {
+      setDoc(familyDocRef, state).catch(function(e) { alert("Save error: " + e.message); });
+    }
+  }
+
+  function saveGcalCache(items) {
+    gcalCache = Array.isArray(items) ? items : [];
+    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    renderAll();
+  }
+
+  function syncEventFormMode() {
+    const t = I18N[curLang];
+    const hEl = document.getElementById("hAddEvent");
+    const btnEl = document.getElementById("btnAddEvent");
+    const cancelEl = document.getElementById("btnCancelEditEvent");
+    if (editingEventId !== null) {
+      hEl.textContent = t.hEditEvent;
+      btnEl.textContent = t.btnSaveEvent;
+      cancelEl.textContent = t.btnCancel;
+      cancelEl.style.display = "inline-block";
+    } else {
+      hEl.textContent = t.hAddEvent;
+      btnEl.textContent = t.btnAdd;
+      cancelEl.textContent = t.btnCancel;
+      cancelEl.style.display = "none";
+    }
+  }
+
+  function syncHidePastTrashBtn() {
+    const t = I18N[curLang];
+    const btn = document.getElementById("btnToggleHidePastTrash");
+    if (!btn) return;
+    btn.textContent = hidePastTrash ? t.btnShowPastTrash : t.btnHidePastTrash;
+    btn.classList.toggle("active", !!hidePastTrash);
+  }
+
+  window.toggleHidePastTrash = function() {
+    hidePastTrash = !hidePastTrash;
+    syncHidePastTrashBtn();
+    renderAll();
+  };
+
+  window.setLang = function(lang) {
+    curLang = lang === "de" ? "de" : "zh";
+    localStorage.setItem("familyHubLang", curLang);
+    applyTranslations();
+    renderAll();
+  };
+
+  window.switchTab = function(tabId) {
+    document.querySelectorAll(".tab-page").forEach(function(p) { p.classList.remove("active"); });
+    const targetPage = document.getElementById("page-" + tabId);
+    if (targetPage) targetPage.classList.add("active");
+    document.querySelectorAll("nav.bottom-nav button").forEach(function(b) { b.classList.remove("active"); });
+    const targetNav = document.getElementById("nav-" + tabId);
+    if (targetNav) targetNav.classList.add("active");
+  };
+
+  window.shiftCalMonth = function(delta) {
+    const d = new Date(calYear, calMonth + delta, 1);
+    calYear = d.getFullYear();
+    calMonth = d.getMonth();
+    renderAll();
+  };
+
+  window.goCalToday = function() {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    renderAll();
+  };
+
+  window.openTrashFromCal = function(ev, dateStr) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    if (dateStr) {
+      const inp = document.getElementById("trDate");
+      if (inp) inp.value = dateStr;
+    }
+    window.switchTab("trash");
+  };
+
+  window.openEventFromCal = function(ev, dateStr, titleText) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    if (dateStr) {
+      const dInp = document.getElementById("evDate");
+      if (dInp && !dInp.value) dInp.value = dateStr;
+    }
+    if (titleText) {
+      const sInp = document.getElementById("evSearch");
+      if (sInp) sInp.value = titleText;
+    }
+    window.switchTab("events");
+    window.applyEventFilter();
+  };
+
+  window.applyEventFilter = function() {
+    renderAll();
+  };
+
+  window.onTrashTypeFilterChange = function(el) {
+    selectedTrashFilter = (el && el.value) || "__ALL__";
+    renderAll();
+  };
+
+  window.handleMemoEnter = function(e) {
+    if (e.key === "Enter") window.addMemo();
+  };
+
+  window.addMemo = function() {
+    const title = document.getElementById("memoTitle").value.trim();
+    const text = document.getElementById("memoText").value.trim();
+    if (!title && !text) return;
+    state.memos.unshift({
+      id: Date.now(),
+      title: title,
+      text: text,
+      pinned: false,
+      updatedAt: todayIso()
+    });
+    document.getElementById("memoTitle").value = "";
+    document.getElementById("memoText").value = "";
+    saveState();
+  };
+
+  window.togglePinMemo = function(id) {
+    const m = state.memos.find(function(x) { return x.id === id; });
+    if (m) { m.pinned = !m.pinned; saveState(); }
+  };
+
+  window.editMemo = function(id) {
+    const t = I18N[curLang];
+    const m = state.memos.find(function(x) { return x.id === id; });
+    if (!m) return;
+    const nextText = prompt(t.memoEditPrompt, m.text || "");
+    if (nextText === null) return;
+    m.text = nextText.trim();
+    m.updatedAt = todayIso();
+    saveState();
+  };
+
+  window.delMemo = function(id) {
+    state.memos = state.memos.filter(function(x) { return x.id !== id; });
+    saveState();
+  };
+
+  window.addGcalSource = function() {
+    const labelInp = document.getElementById("gcalLabel");
+    const idInp = document.getElementById("gcalId");
+    const calendarId = (idInp.value || "").trim();
+    if (!calendarId) return;
+    const label = (labelInp.value || "").trim() || calendarId;
+    state.gcalSources.push({
+      id: "gcal_" + Date.now(),
+      label: label,
+      calendarId: calendarId,
+      resolvedAccount: ""
+    });
+    labelInp.value = "";
+    idInp.value = "";
+    saveState();
+  };
+
+  window.delGcalSource = function(id) {
+    const target = state.gcalSources.find(function(s) { return s.id === id; });
+    state.gcalSources = state.gcalSources.filter(function(s) { return s.id !== id; });
+    if (target) {
+      gcalCache = gcalCache.filter(function(ev) { return ev.sourceId !== id; });
+      localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    }
+    saveState();
+  };
+
+  async function ensureGcalToken() {
+    if (gcalAccessToken) return gcalAccessToken;
+    const result = await signInWithPopup(auth, provider);
+    const cred = GoogleAuthProvider.credentialFromResult(result);
+    if (cred && cred.accessToken) {
+      gcalAccessToken = cred.accessToken;
+      return gcalAccessToken;
+    }
+    throw new Error("Missing Google Calendar access token");
+  }
+
+  function parseGcalDateTime(dtObj) {
+    if (!dtObj) return { date: "", time: "" };
+    if (dtObj.date) {
+      return { date: dtObj.date, time: "" };
+    }
+    if (dtObj.dateTime) {
+      const d = new Date(dtObj.dateTime);
+      if (!isNaN(d.getTime())) {
+        const pad = function(n) { return n < 10 ? "0" + n : String(n); };
+        return {
+          date: d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()),
+          time: pad(d.getHours()) + ":" + pad(d.getMinutes())
+        };
+      }
+      const parts = String(dtObj.dateTime).split("T");
+      return { date: parts[0] || "", time: (parts[1] || "").slice(0, 5) };
+    }
+    return { date: "", time: "" };
+  }
+
+  async function fetchCalendarMetadata(token, calendarId) {
+    const encodedCalId = encodeURIComponent(calendarId || "primary");
+    try {
+      const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/" + encodedCalId, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function fetchUpcomingEventsForCalendar(token, source) {
+    const rawCalId = (source.calendarId || "primary").trim();
+    const encodedCalId = encodeURIComponent(rawCalId);
+    const meta = await fetchCalendarMetadata(token, rawCalId);
+    const calSummary = (meta && meta.summary) ? String(meta.summary).trim() : "";
+    const calIdFromMeta = (meta && meta.id) ? String(meta.id).trim() : "";
+    const loginEmail = (currentUser && currentUser.email) ? String(currentUser.email).trim() : "";
+
+    let accountLabel = rawCalId;
+    if (rawCalId === "primary") {
+      accountLabel = calIdFromMeta || loginEmail || "primary";
+    } else if (calIdFromMeta && calIdFromMeta !== rawCalId) {
+      accountLabel = rawCalId + " (" + calIdFromMeta + ")";
+    }
+
+    let sourceLabel = (source.label || "").trim();
+    if (!sourceLabel || sourceLabel === "我的主日曆" || sourceLabel === "Mein Kalender") {
+      sourceLabel = calSummary || accountLabel || "Google 日曆";
+    }
+    source.resolvedAccount = accountLabel;
+    source.resolvedSummary = calSummary;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const timeMinIso = encodeURIComponent(now.toISOString());
+    let pageToken = "";
+    const collected = [];
+    let guard = 0;
+
+    do {
+      guard++;
+      const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodedCalId +
+        "/events?singleEvents=true&timeMin=" + timeMinIso + "&maxResults=2500" +
+        (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+      const res = await fetch(url, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = (data && data.error && data.error.message) || ("HTTP " + res.status);
+        throw new Error(sourceLabel + " (" + rawCalId + "): " + msg);
+      }
+      (data.items || []).forEach(function(item, idx) {
+        if (item.status === "cancelled") return;
+        const dt = parseGcalDateTime(item.start);
+        if (!dt.date || dayDiff(dt.date) < 0) return;
+        const cleanTitle = (item.summary || "(No title)").trim();
+        collected.push({
+          id: "gcal_" + rawCalId + "_" + (item.id || idx) + "_" + dt.date + "_" + (dt.time || "allday"),
+          sourceId: source.id,
+          sourceLabel: sourceLabel,
+          accountLabel: accountLabel,
+          calendarId: rawCalId,
+          date: dt.date,
+          time: dt.time,
+          title: cleanTitle,
+          note: item.location || item.description || "",
+          isGcal: true
+        });
+      });
+      pageToken = data.nextPageToken || "";
+    } while (pageToken && guard < 40);
+
+    return collected;
+  }
+
+  function dedupeGcalEvents(items) {
+    const seenKeys = new Set();
+    const out = [];
+    (items || []).forEach(function(ev) {
+      const contentKey = [
+        (ev.accountLabel || ev.calendarId || "").toLowerCase().trim(),
+        (ev.date || "").trim(),
+        (ev.time || "").trim(),
+        (ev.title || "").toLowerCase().trim()
+      ].join("|");
+      const idKey = String(ev.id || "").trim();
+      if (seenKeys.has(contentKey) || (idKey && seenKeys.has("ID:" + idKey))) return;
+      seenKeys.add(contentKey);
+      if (idKey) seenKeys.add("ID:" + idKey);
+      out.push(ev);
+    });
+    return out;
+  }
+
+  window.syncGoogleCalendars = async function() {
+    const t = I18N[curLang];
+    const btn = document.getElementById("btnSyncGcal");
+    const origText = btn ? btn.textContent : "";
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = t.gcalSyncing;
+      }
+      const token = await ensureGcalToken();
+      const sources = state.gcalSources && state.gcalSources.length
+        ? state.gcalSources
+        : [{ id: "primary", label: t.gcalBadge, calendarId: "primary", resolvedAccount: "" }];
+
+      const allFetched = [];
+      for (let i = 0; i < sources.length; i++) {
+        const rows = await fetchUpcomingEventsForCalendar(token, sources[i]);
+        rows.forEach(function(r) { allFetched.push(r); });
+      }
+      const deduped = dedupeGcalEvents(allFetched).sort(function(a, b) {
+        return ((a.date || "") + (a.time || "")).localeCompare((b.date || "") + (b.time || ""));
+      });
+      localStorage.setItem("familyHubData", JSON.stringify(state));
+      saveGcalCache(deduped);
+      if (currentUser) {
+        setDoc(familyDocRef, state).catch(function() {});
+      }
+      alert(t.gcalSyncedAlert(deduped.length));
+    } catch (e) {
+      if (e && e.code === "auth/popup-closed-by-user") return;
+      alert(t.gcalErrAlert(e && e.message ? e.message : String(e)));
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = origText || t.btnSyncGcal;
+      }
+    }
+  };
+
+  function getEventRowKey(ev, isGcal) {
+    return (isGcal ? "gcal:" : "local:") + String(ev.id);
+  }
+
+  window.toggleEventSelect = function(key, checked) {
+    if (checked) selectedEventKeys.add(String(key));
+    else selectedEventKeys.delete(String(key));
+    updateSelectAllButtonLabel();
+  };
+
+  function areAllFilteredSelected() {
+    if (!lastFilteredEventKeys.length) return false;
+    return lastFilteredEventKeys.every(function(k) { return selectedEventKeys.has(String(k)); });
+  }
+
+  function updateSelectAllButtonLabel() {
+    const t = I18N[curLang];
+    const btn = document.getElementById("btnSelectAllEvents");
+    if (!btn) return;
+    btn.textContent = areAllFilteredSelected() ? t.btnDeselectAll : t.btnSelectAll;
+  }
+
+  window.toggleSelectAllFilteredEvents = function() {
+    if (!lastFilteredEventKeys.length) return;
+    const allSelected = areAllFilteredSelected();
+    lastFilteredEventKeys.forEach(function(k) {
+      if (allSelected) selectedEventKeys.delete(String(k));
+      else selectedEventKeys.add(String(k));
+    });
+    renderAll();
+  };
+
+  window.batchDeleteEvents = function() {
+    const t = I18N[curLang];
+    if (!selectedEventKeys.size) {
+      return alert(t.alertSelectEventsFirst);
+    }
+    if (!confirm(t.confirmBatchDelEvents(selectedEventKeys.size))) {
+      return;
+    }
+    const keys = Array.from(selectedEventKeys);
+    const localDelIds = new Set();
+    const gcalDelIds = new Set();
+    keys.forEach(function(k) {
+      if (k.indexOf("local:") === 0) localDelIds.add(k.slice(6));
+      else if (k.indexOf("gcal:") === 0) gcalDelIds.add(k.slice(5));
+    });
+
+    if (localDelIds.size) {
+      if (editingEventId !== null && localDelIds.has(String(editingEventId))) {
+        resetEventForm();
+      }
+      state.events = state.events.filter(function(x) { return !localDelIds.has(String(x.id)); });
+    }
+    if (gcalDelIds.size) {
+      gcalCache = gcalCache.filter(function(x) { return !gcalDelIds.has(String(x.id)); });
+      localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    }
+    selectedEventKeys.clear();
+    saveState();
+  };
+
+  window.clearPastEvents = function() {
+    gcalCache = gcalCache.filter(function(ev) { return !ev.date || dayDiff(ev.date) >= 0; });
+    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    renderAll();
+  };
+
+  window.delGcalEvent = function(id) {
+    selectedEventKeys.delete("gcal:" + String(id));
+    gcalCache = gcalCache.filter(function(ev) { return String(ev.id) !== String(id); });
+    localStorage.setItem("familyHubGcalCache", JSON.stringify(gcalCache));
+    renderAll();
+  };
+
+  window.handleAuthClick = function() {
+    if (currentUser) {
+      gcalAccessToken = null;
+      signOut(auth);
+    } else {
+      signInWithPopup(auth, provider).then(function(res) {
+        const cred = GoogleAuthProvider.credentialFromResult(res);
+        if (cred && cred.accessToken) gcalAccessToken = cred.accessToken;
+      }).catch(function(e) { alert("Login error: " + e.message); });
+    }
+  };
+
+  onAuthStateChanged(auth, function(user) {
+    currentUser = user;
+    if (!user) gcalAccessToken = null;
+    updateAuthUI();
+    if (user) {
+      if (unsubscribeDoc) unsubscribeDoc();
+      unsubscribeDoc = onSnapshot(familyDocRef, function(snap) {
+        if (snap.exists()) {
+          const d = snap.data();
+          state = {
+            events: (d.events || []).map(function(ev) {
+              return Object.assign({}, ev, { whoList: Array.isArray(ev.whoList) ? ev.whoList : (ev.who ? [ev.who] : []) });
+            }),
+            trash: (d.trash || []).map(function(tr) { return Object.assign({ done: false }, tr); }),
+            shop: (d.shop || []).map(function(s) { return Object.assign({ qty: "" }, s); }),
+            recipes: d.recipes || [],
+            memos: Array.isArray(d.memos) ? d.memos : [],
+            customWho: Array.isArray(d.customWho) ? d.customWho : [],
+            customShopCats: Array.isArray(d.customShopCats) ? d.customShopCats : [],
+            gcalSources: Array.isArray(d.gcalSources) && d.gcalSources.length
+              ? d.gcalSources
+              : [{ id: "primary", label: I18N[curLang].gcalBadge, calendarId: "primary", resolvedAccount: "" }]
+          };
+          localStorage.setItem("familyHubData", JSON.stringify(state));
+          renderAll();
+        } else {
+          saveState();
+        }
+      }, function(err) { alert("Firestore error: " + err.message); });
+    } else {
+      if (unsubscribeDoc) { unsubscribeDoc(); unsubscribeDoc = null; }
+      renderAll();
+    }
+  });
+
+  function updateAuthUI() {
+    const t = I18N[curLang];
+    const badge = document.getElementById("syncStatus");
+    const btn = document.getElementById("authBtnTop");
+    badge.textContent = currentUser ? t.cloudSyncing : t.localMode;
+    badge.classList.toggle("online", !!currentUser);
+    btn.textContent = currentUser ? t.logoutBtn : t.loginBtn;
+    btn.classList.toggle("primary", !currentUser);
+  }
+
+  function getShopCats() {
+    const t = I18N[curLang];
+    const seen = {};
+    const out = [];
+    (t.defaultShopCats || []).forEach(function(c) {
+      if (!seen[c]) { seen[c] = true; out.push({ label: c, tag: t.whoPresetHint }); }
+    });
+    const extraCats = (state.customShopCats || []).concat(
+      state.shop.map(function(s) { return (s.cat || "").trim(); }).filter(Boolean)
+    );
+    extraCats.forEach(function(c) {
+      if (!seen[c]) { seen[c] = true; out.push({ label: c, tag: t.whoSavedHint }); }
+    });
+    return out;
+  }
+
+  window.openShopCatDropdown = function() {
+    renderShopCatDropdown();
+    document.getElementById("shopCatDropdown").classList.add("open");
+  };
+  window.selectShopCat = function(val) {
+    const clean = (val || "").trim();
+    if (!clean) return;
+    if ((I18N[curLang].defaultShopCats || []).indexOf(clean) === -1 && state.customShopCats.indexOf(clean) === -1) {
+      state.customShopCats.push(clean);
+    }
+    document.getElementById("shCatInput").value = clean;
+    document.getElementById("shopCatDropdown").classList.remove("open");
+    refreshShopCatFilter();
+  };
+  window.renderShopCatDropdown = function() {
+    const t = I18N[curLang];
+    const dd = document.getElementById("shopCatDropdown");
+    const q = document.getElementById("shCatInput").value.trim();
+    const ql = q.toLowerCase();
+    const all = getShopCats();
+    const list = all.filter(function(x) { return !ql || x.label.toLowerCase().indexOf(ql) !== -1; });
+    const rows = [];
+    if (q && !all.some(function(x) { return x.label.toLowerCase() === ql; })) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(q) + '" onclick="onPickShopCat(event,this)"><span><strong>+ ' + esc(q) + '</strong></span><span class="hint">' + esc(t.whoAddNewHint) + '</span></div>');
+    }
+    list.forEach(function(item) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(item.label) + '" onclick="onPickShopCat(event,this)"><span>' + esc(item.label) + '</span><span class="hint">' + esc(item.tag) + '</span></div>');
+    });
+    dd.innerHTML = rows.join("") || '<div class="dropdown-item"><span class="hint">' + esc(t.shCatPh) + '</span></div>';
+  };
+  window.onPickShopCat = function(ev, el) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    if (el && el.dataset) window.selectShopCat(el.dataset.val);
+  };
+  window.handleShopCatKeydown = function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const v = document.getElementById("shCatInput").value.trim();
+      if (v) window.selectShopCat(v);
+    }
+  };
+  window.handleShopEnter = function(e) {
+    if (e.key === "Enter") window.addShop();
+  };
+  function refreshShopCatFilter() {
+    const t = I18N[curLang];
+    const el = document.getElementById("shFilterCat");
+    const prev = el.value;
+    const opts = getShopCats().map(function(x) { return x.label; });
+    const items = ['<option value="__ALL__">' + esc(t.filterAllShopCat) + '</option>'];
+    opts.forEach(function(c) { items.push('<option value="' + esc(c) + '">' + esc(c) + '</option>'); });
+    el.innerHTML = items.join("");
+    el.value = opts.indexOf(prev) !== -1 ? prev : "__ALL__";
+  }
+
+  function getTrashFilterOptions(t) {
+    const seen = {};
+    const opts = [];
+    (t.trashTypes || []).forEach(function(c) {
+      const clean = String(c || "").trim();
+      const key = clean.toLowerCase();
+      if (clean && !seen[key]) { seen[key] = true; opts.push(clean); }
+    });
+    state.trash.forEach(function(tr) {
+      const clean = String(tr.type || "").trim();
+      const key = clean.toLowerCase();
+      if (clean && !seen[key]) { seen[key] = true; opts.push(clean); }
+    });
+    return opts;
+  }
+
+  function getWhoOpts() {
+    const t = I18N[curLang];
+    const seen = {};
+    const out = [];
+    (t.defaultWho || []).forEach(function(w) {
+      if (!seen[w]) { seen[w] = true; out.push({ label: w, tag: t.whoPresetHint }); }
+    });
+    const fromEv = [];
+    state.events.forEach(function(e) {
+      (e.whoList || []).forEach(function(w) {
+        const clean = (w || "").trim();
+        if (clean) fromEv.push(clean);
+      });
+    });
+    (state.customWho || []).concat(fromEv).forEach(function(w) {
+      if (!seen[w]) { seen[w] = true; out.push({ label: w, tag: t.whoSavedHint }); }
+    });
+    return out;
+  }
+
+  window.focusWhoInput = function() {
+    const inp = document.getElementById("evWhoInput");
+    if (inp) inp.focus();
+    window.openWhoDropdown();
+  };
+  window.openWhoDropdown = function() {
+    renderWhoDropdown();
+    document.getElementById("whoDropdown").classList.add("open");
+  };
+  window.addWhoChip = function(val) {
+    const clean = (val || "").trim();
+    if (!clean) return;
+    if (selectedWhoList.indexOf(clean) === -1) selectedWhoList.push(clean);
+    if ((I18N[curLang].defaultWho || []).indexOf(clean) === -1 && state.customWho.indexOf(clean) === -1) {
+      state.customWho.push(clean);
+    }
+    const inp = document.getElementById("evWhoInput");
+    inp.value = "";
+    renderChips();
+    renderWhoDropdown();
+    document.getElementById("whoDropdown").classList.add("open");
+    inp.focus();
+  };
+  window.removeWhoChip = function(idx) {
+    selectedWhoList.splice(idx, 1);
+    renderChips();
+    renderWhoDropdown();
+  };
+  window.onRemoveChipClick = function(ev, idx) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    window.removeWhoChip(idx);
+  };
+  function renderChips() {
+    const items = [];
+    selectedWhoList.forEach(function(w, i) {
+      items.push('<span class="who-chip">' + esc(w) + '<button type="button" onclick="onRemoveChipClick(event,' + i + ')">x</button></span>');
+    });
+    document.getElementById("selectedWhoChips").innerHTML = items.join("");
+  }
+  window.renderWhoDropdown = function() {
+    const t = I18N[curLang];
+    const dd = document.getElementById("whoDropdown");
+    const q = document.getElementById("evWhoInput").value.trim();
+    const ql = q.toLowerCase();
+    const all = getWhoOpts();
+    const list = all.filter(function(x) {
+      return selectedWhoList.indexOf(x.label) === -1 && (!ql || x.label.toLowerCase().indexOf(ql) !== -1);
+    });
+    const rows = [];
+    if (q && !all.some(function(x) { return x.label.toLowerCase() === ql; })) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(q) + '" onclick="onPickWho(event,this)"><span><strong>+ ' + esc(q) + '</strong></span><span class="hint">' + esc(t.whoAddNewHint) + '</span></div>');
+    }
+    list.forEach(function(item) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(item.label) + '" onclick="onPickWho(event,this)"><span>' + esc(item.label) + '</span><span class="hint">' + esc(item.tag) + '</span></div>');
+    });
+    dd.innerHTML = rows.join("") || '<div class="dropdown-item"><span class="hint">' + esc(t.whoInputPh) + '</span></div>';
+  };
+  window.onPickWho = function(ev, el) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    if (el && el.dataset) window.addWhoChip(el.dataset.val);
+  };
+  window.handleWhoKeydown = function(e) {
+    const inp = document.getElementById("evWhoInput");
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const v = inp.value.split(",").join("").trim();
+      if (v) window.addWhoChip(v);
+    } else if (e.key === "Backspace" && !inp.value && selectedWhoList.length) {
+      window.removeWhoChip(selectedWhoList.length - 1);
+    }
+  };
+  function refreshWhoFilter() {
+    const t = I18N[curLang];
+    const el = document.getElementById("evFilterWho");
+    const prev = el.value;
+    const opts = getWhoOpts().map(function(x) { return x.label; });
+    const items = ['<option value="__ALL__">' + esc(t.filterAllWho) + '</option>'];
+    opts.forEach(function(w) { items.push('<option value="' + esc(w) + '">' + esc(w) + '</option>'); });
+    el.innerHTML = items.join("");
+    el.value = opts.indexOf(prev) !== -1 ? prev : "__ALL__";
+  }
+
+  document.addEventListener("click", function(e) {
+    const whoWrap = document.getElementById("whoPickerWrap");
+    if (whoWrap && !whoWrap.contains(e.target)) {
+      document.getElementById("whoDropdown").classList.remove("open");
+    }
+    const catWrap = document.getElementById("shopCatPickerWrap");
+    if (catWrap && !catWrap.contains(e.target)) {
+      document.getElementById("shopCatDropdown").classList.remove("open");
+    }
+  });
+
+  function isGeneralWaste(type) {
+    const s = (type || "").toLowerCase();
+    return s.indexOf("一般垃圾") !== -1 || s.indexOf("restmuell") !== -1 || s.indexOf("restmüll") !== -1;
+  }
+  function binKey(type) {
+    const s = (type || "").toLowerCase();
+    if (s.indexOf("bio") !== -1 || s.indexOf("綠") !== -1) return "bio";
+    if (s.indexOf("gelb") !== -1 || s.indexOf("黃") !== -1) return "gelb";
+    if (s.indexOf("papier") !== -1 || s.indexOf("藍") !== -1) return "papier";
+    if (s.indexOf("sonder") !== -1) return "sonder";
+    return "rest";
+  }
+  function shortBinLabel(type, t) {
+    const k = binKey(type);
+    if (k === "bio") return t.shortBio;
+    if (k === "gelb") return t.shortGelb;
+    if (k === "papier") return t.shortPapier;
+    if (k === "sonder") return t.shortSonder;
+    return t.shortRest;
+  }
+  function binBadge(type) {
+    return '<span class="bin-badge bin-' + binKey(type) + '">' + esc(type) + '</span>';
+  }
+  function parseBulkDate(rawLine) {
+    const cleaned = String(rawLine || "").split("*").join("").trim();
+    const m = cleaned.match(/^(\d{1,2})[\s./-]+(\d{1,2})[\s./-]+(\d{4})$/);
+    if (!m) return null;
+    const dd = Number(m[1]);
+    const mm = Number(m[2]);
+    const yyyy = Number(m[3]);
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const dt = new Date(yyyy, mm - 1, dd);
+    if (dt.getFullYear() !== yyyy || dt.getMonth() !== mm - 1 || dt.getDate() !== dd) return null;
+    const pad = function(n) { return n < 10 ? "0" + n : String(n); };
+    return yyyy + "-" + pad(mm) + "-" + pad(dd);
+  }
+  function getWasteStats(year) {
+    const y = year || String(new Date().getFullYear());
+    const used = state.trash.filter(function(tr) {
+      return tr.done && isGeneralWaste(tr.type) && String(tr.date || "").indexOf(y) === 0;
+    }).length;
+    return { year: y, used: used, limit: GENERAL_WASTE_YEARLY_LIMIT, left: GENERAL_WASTE_YEARLY_LIMIT - used };
+  }
+  function renderQuota(stats, compact) {
+    const t = I18N[curLang];
+    const cls = stats.used > stats.limit ? "quota-box over" : (stats.used >= stats.limit ? "quota-box warn" : "quota-box");
+    const extra = stats.used >= stats.limit
+      ? '<div style="margin-top:4px;font-size:0.8rem;">' + esc(t.quotaFullWarning(stats.year, stats.limit)) + '</div>'
+      : "";
+    const styleAttr = compact ? ' style="padding:7px 10px;font-size:0.82rem;margin-bottom:10px;"' : "";
+    return '<div class="' + cls + '"' + styleAttr + '>' + esc(t.quotaText(stats.year, stats.used, stats.limit, Math.max(0, stats.left))) + extra + '</div>';
+  }
+  function dayDiff(dateStr) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((new Date(dateStr + "T00:00:00") - today) / 86400000);
+  }
+  function dayBadge(dateStr) {
+    const t = I18N[curLang];
+    const d = dayDiff(dateStr);
+    if (d === 0) return '<span class="tag tag-today">' + esc(t.today) + '</span>';
+    if (d === 1) return '<span class="tag tag-tomorrow">' + esc(t.tomorrow) + '</span>';
+    if (d > 1) return '<span class="tag tag-future">' + esc(t.inDays(d)) + '</span>';
+    return '<span class="tag tag-cat">' + esc(t.expired) + '</span>';
+  }
+
+  function resetEventForm() {
+    editingEventId = null;
+    document.getElementById("evTitle").value = "";
+    document.getElementById("evNote").value = "";
+    document.getElementById("evWhoInput").value = "";
+    selectedWhoList = [];
+    renderChips();
+    syncEventFormMode();
+  }
+
+  window.editEvent = function(id) {
+    const ev = state.events.find(function(x) { return String(x.id) === String(id); });
+    if (!ev) return;
+    editingEventId = ev.id;
+    document.getElementById("evDate").value = ev.date || "";
+    document.getElementById("evTime").value = ev.time || "";
+    selectedWhoList = Array.isArray(ev.whoList) ? ev.whoList.slice() : (ev.who ? [ev.who] : []);
+    document.getElementById("evWhoInput").value = "";
+    document.getElementById("evTitle").value = ev.title || "";
+    document.getElementById("evNote").value = ev.note || "";
+    renderChips();
+    syncEventFormMode();
+    window.switchTab("events");
+    document.getElementById("evTitle").focus();
+  };
+
+  window.cancelEditEvent = function() {
+    resetEventForm();
+  };
+
+  window.addEvent = function() {
+    const t = I18N[curLang];
+    const date = document.getElementById("evDate").value;
+    const time = document.getElementById("evTime").value;
+    const extra = document.getElementById("evWhoInput").value.trim();
+    const whoList = selectedWhoList.slice();
+    if (extra && whoList.indexOf(extra) === -1) whoList.push(extra);
+    whoList.forEach(function(w) {
+      if ((t.defaultWho || []).indexOf(w) === -1 && state.customWho.indexOf(w) === -1) {
+        state.customWho.push(w);
+      }
+    });
+    const title = document.getElementById("evTitle").value.trim();
+    const note = document.getElementById("evNote").value.trim();
+    if (!date || !title) return alert(t.alertDateTitle);
+
+    if (editingEventId !== null) {
+      const target = state.events.find(function(x) { return String(x.id) === String(editingEventId); });
+      if (target) {
+        target.date = date;
+        target.time = time;
+        target.whoList = whoList;
+        target.title = title;
+        target.note = note;
+      }
+    } else {
+      state.events.push({ id: Date.now(), date: date, time: time, whoList: whoList, title: title, note: note });
+    }
+
+    state.events.sort(function(a, b) { return ((a.date || "") + (a.time || "")).localeCompare((b.date || "") + (b.time || "")); });
+    resetEventForm();
+    saveState();
+  };
+
+  window.delEvent = function(id) {
+    selectedEventKeys.delete("local:" + String(id));
+    if (editingEventId !== null && String(editingEventId) === String(id)) {
+      resetEventForm();
+    }
+    state.events = state.events.filter(function(x) { return String(x.id) !== String(id); });
+    saveState();
+  };
+
+  window.addTrash = function() {
+    const date = document.getElementById("trDate").value;
+    if (!date) return alert(I18N[curLang].alertTrashDate);
+    state.trash.push({
+      id: Date.now(),
+      date: date,
+      type: document.getElementById("trType").value,
+      note: document.getElementById("trNote").value.trim(),
+      done: false
+    });
+    state.trash.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    document.getElementById("trNote").value = "";
+    saveState();
+  };
+  window.bulkAddTrash = function() {
+    const t = I18N[curLang];
+    const chosenType = document.getElementById("trBulkType").value || document.getElementById("trType").value;
+    const lines = document.getElementById("trBulk").value.split("\n").map(function(s) { return s.trim(); }).filter(Boolean);
+    let n = 0;
+    lines.forEach(function(line, i) {
+      const isoDate = parseBulkDate(line);
+      if (isoDate) {
+        state.trash.push({
+          id: Date.now() + i,
+          date: isoDate,
+          type: chosenType,
+          note: "",
+          done: false
+        });
+        n++;
+      }
+    });
+    if (!n) return alert(t.alertBulkErr);
+    state.trash.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    document.getElementById("trBulk").value = "";
+    alert(t.alertBulkOk(n));
+    saveState();
+  };
+  window.toggleTrashDone = function(id) {
+    const t = I18N[curLang];
+    const item = state.trash.find(function(x) { return x.id === id; });
+    if (!item) return;
+    const next = !item.done;
+    if (next && isGeneralWaste(item.type)) {
+      const y = String(item.date || "").slice(0, 4) || String(new Date().getFullYear());
+      const used = state.trash.filter(function(x) {
+        return x.id !== id && x.done && isGeneralWaste(x.type) && String(x.date || "").indexOf(y) === 0;
+      }).length;
+      if (used >= GENERAL_WASTE_YEARLY_LIMIT) alert(t.alertQuotaFull(y, GENERAL_WASTE_YEARLY_LIMIT));
+    }
+    item.done = next;
+    saveState();
+  };
+  window.delTrash = function(id) {
+    state.trash = state.trash.filter(function(x) { return x.id !== id; });
+    saveState();
+  };
+
+  window.addShop = function() {
+    const t = I18N[curLang];
+    const cat = document.getElementById("shCatInput").value.trim() || (t.defaultShopCats && t.defaultShopCats[0]) || "";
+    const name = document.getElementById("shName").value.trim();
+    const qty = document.getElementById("shQty").value.trim();
+    if (!name) return;
+    if ((t.defaultShopCats || []).indexOf(cat) === -1 && state.customShopCats.indexOf(cat) === -1) {
+      state.customShopCats.push(cat);
+    }
+    state.shop.unshift({ id: Date.now(), cat: cat, name: name, qty: qty, done: false });
+    document.getElementById("shName").value = "";
+    document.getElementById("shQty").value = "";
+    saveState();
+  };
+  window.toggleShop = function(id) {
+    const s = state.shop.find(function(x) { return x.id === id; });
+    if (s) { s.done = !s.done; saveState(); }
+  };
+  window.delShop = function(id) {
+    state.shop = state.shop.filter(function(x) { return x.id !== id; });
+    saveState();
+  };
+  window.clearDoneShop = function() {
+    state.shop = state.shop.filter(function(x) { return !x.done; });
+    saveState();
+  };
+
+  window.addRecipe = function() {
+    const t = I18N[curLang];
+    const title = document.getElementById("rcTitle").value.trim();
+    if (!title) return alert(t.alertRecipeTitle);
+    state.recipes.unshift({
+      id: Date.now(),
+      title: title,
+      tag: document.getElementById("rcTag").value.trim() || "Recipe",
+      ing: document.getElementById("rcIng").value.trim(),
+      steps: document.getElementById("rcSteps").value.trim()
+    });
+    ["rcTitle", "rcTag", "rcIng", "rcSteps"].forEach(function(id) { document.getElementById(id).value = ""; });
+    saveState();
+  };
+  window.delRecipe = function(id) {
+    if (confirm(I18N[curLang].confirmDelRecipe)) {
+      state.recipes = state.recipes.filter(function(x) { return x.id !== id; });
+      saveState();
+    }
+  };
+  window.ingToShop = function(id) {
+    const t = I18N[curLang];
+    const defaultCat = (t.defaultShopCats && t.defaultShopCats[0]) || "";
+    const r = state.recipes.find(function(x) { return x.id === id; });
+    if (!r || !r.ing) return;
+    const lines = r.ing.split("\n").map(function(s) { return s.trim(); }).filter(Boolean);
+    lines.forEach(function(line, i) {
+      state.shop.unshift({ id: Date.now() + i, cat: defaultCat, name: line + " (" + r.title + ")", qty: "", done: false });
+    });
+    alert(t.alertIngAdded(lines.length));
+    saveState();
+  };
+
+  function getCombinedEvents() {
+    const localEvs = (state.events || []).map(function(ev) {
+      return Object.assign({}, ev, { isGcal: false });
+    });
+    const extEvs = dedupeGcalEvents(gcalCache || []).map(function(ev) {
+      return Object.assign({}, ev, {
+        whoList: [],
+        isGcal: true
+      });
+    });
+    return localEvs.concat(extEvs).sort(function(a, b) {
+      return ((a.date || "") + (a.time || "")).localeCompare((b.date || "") + (b.time || ""));
+    });
+  }
+
+  function formatGcalSourceTag(ev) {
+    const lbl = (ev.sourceLabel || "").trim();
+    const acc = (ev.accountLabel || ev.calendarId || "").trim();
+    if (lbl && acc && lbl.toLowerCase() !== acc.toLowerCase()) {
+      return lbl + " · " + acc;
+    }
+    return lbl || acc || "Google 日曆";
+  }
+
+  function renderUpcomingBanner(t) {
+    const banner = document.getElementById("upcomingBanner");
+    if (!banner) return;
+
+    const items = [];
+    state.trash.forEach(function(tr) {
+      if (!tr.date || tr.done) return;
+      const d = dayDiff(tr.date);
+      if (d >= 0 && d <= 2) {
+        items.push({
+          date: tr.date,
+          sortKey: tr.date + " 00:00",
+          label: tr.type,
+          badgeHtml: binBadge(tr.type),
+          onClick: "openTrashFromCal(event,'" + esc(tr.date) + "')"
+        });
+      }
+    });
+
+    getCombinedEvents().forEach(function(ev) {
+      if (!ev.date) return;
+      const d = dayDiff(ev.date);
+      if (d >= 0 && d <= 2) {
+        const srcTag = ev.isGcal
+          ? '<span class="tag tag-src">[' + esc(formatGcalSourceTag(ev)) + ']</span>'
+          : "";
+        const timeStr = ev.time ? (esc(ev.time) + " ") : "";
+        items.push({
+          date: ev.date,
+          sortKey: ev.date + " " + (ev.time || "99:99"),
+          label: timeStr + esc(ev.title),
+          badgeHtml: srcTag,
+          onClick: "openEventFromCal(event,'" + esc(ev.date) + "','" + esc(ev.title || "") + "')"
+        });
+      }
+    });
+
+    if (!items.length) {
+      banner.style.display = "none";
+      banner.innerHTML = "";
+      return;
+    }
+
+    items.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+    const rows = items.map(function(it) {
+      return (
+        '<li onclick="' + it.onClick + '">' +
+          dayBadge(it.date) +
+          it.badgeHtml +
+          '<strong>' + it.label + '</strong>' +
+        '</li>'
+      );
+    });
+
+    banner.style.display = "block";
+    banner.innerHTML =
+      '<div class="alert-banner-title">⏰ ' + esc(t.upcomingBannerTitle) + '</div>' +
+      '<ul class="alert-banner-list">' + rows.join("") + '</ul>';
+  }
+
+  function renderHomeCalendar(t) {
+    const trashByDate = {};
+    state.trash.forEach(function(tr) {
+      if (!tr.date) return;
+      if (!trashByDate[tr.date]) trashByDate[tr.date] = [];
+      trashByDate[tr.date].push(tr);
+    });
+    const eventsByDate = {};
+    getCombinedEvents().forEach(function(ev) {
+      if (!ev.date) return;
+      if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
+      eventsByDate[ev.date].push(ev);
+    });
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const todayStr = todayIso();
+    const pad = function(n) { return n < 10 ? "0" + n : String(n); };
+
+    const dowHtml = t.dows.map(function(d) { return '<div class="cal-dow">' + esc(d) + '</div>'; }).join("");
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) {
+      cells.push('<div class="cal-cell empty"></div>');
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = calYear + "-" + pad(calMonth + 1) + "-" + pad(day);
+      const dayTr = trashByDate[iso] || [];
+      const dayEv = eventsByDate[iso] || [];
+      const pills = [];
+
+      dayTr.forEach(function(tr) {
+        const k = binKey(tr.type);
+        const label = shortBinLabel(tr.type, t);
+        const doneCls = tr.done ? " is-done" : "";
+        pills.push(
+          '<div class="cal-pill bin-' + k + doneCls + '" onclick="openTrashFromCal(event,\'' + iso + '\')" title="' + esc(tr.type) + '">' +
+            esc(label) +
+          '</div>'
+        );
+      });
+
+      dayEv.forEach(function(ev) {
+        const prefix = ev.isGcal && ev.sourceLabel ? ("[" + ev.sourceLabel + "] ") : "";
+        const text = prefix + (ev.time ? ev.time + " " : "") + (ev.title || "");
+        const pillCls = ev.isGcal ? "cal-pill-gcal" : "cal-pill-event";
+        pills.push(
+          '<div class="cal-pill ' + pillCls + '" onclick="openEventFromCal(event,\'' + iso + '\',\'' + esc(ev.title || "") + '\')" title="' + esc(text) + '">' +
+            esc(text) +
+          '</div>'
+        );
+      });
+
+      const cls = ["cal-cell"];
+      if (iso === todayStr) cls.push("is-today");
+      cells.push(
+        '<div class="' + cls.join(" ") + '">' +
+          '<span class="cal-day-num">' + day + '</span>' +
+          pills.join("") +
+        '</div>'
+      );
+    }
+
+    document.getElementById("homeCalendarBox").innerHTML =
+      '<div class="cal-header">' +
+        '<button type="button" class="btn sm secondary" onclick="shiftCalMonth(-1)"><</button>' +
+        '<span class="cal-month-title">' + esc(t.monthFmt(calYear, calMonth + 1)) + '</span>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button type="button" class="btn sm secondary" onclick="goCalToday()">' + esc(t.todayBtn) + '</button>' +
+          '<button type="button" class="btn sm secondary" onclick="shiftCalMonth(1)">></button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cal-grid">' + dowHtml + cells.join("") + '</div>';
+  }
+
+  function renderHomeMemos(t) {
+    const box = document.getElementById("homeMemoList");
+    if (!box) return;
+    if (!state.memos.length) {
+      box.innerHTML = '<div class="item-sub" style="padding:4px 2px;">' + esc(t.emptyMemo) + '</div>';
+      return;
+    }
+    const sorted = state.memos.slice().sort(function(a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (b.id || 0) - (a.id || 0);
+    });
+    const cards = sorted.map(function(m) {
+      const pinLabel = m.pinned ? ("📌 " + t.memoUnpin) : t.memoPin;
+      const titleHtml = m.title
+        ? '<div class="memo-title">' + (m.pinned ? "📌 " : "") + esc(m.title) + '</div>'
+        : (m.pinned ? '<div class="memo-title">📌</div>' : '<div></div>');
+      return (
+        '<div class="memo-item' + (m.pinned ? " pinned" : "") + '">' +
+          '<div>' +
+            '<div class="memo-head">' + titleHtml + '</div>' +
+            (m.text ? '<div class="memo-body" style="margin-top:4px;">' + esc(m.text) + '</div>' : "") +
+          '</div>' +
+          '<div class="memo-foot">' +
+            '<span class="memo-time">' + esc(m.updatedAt || "") + '</span>' +
+            '<div class="memo-actions">' +
+              '<button type="button" class="btn sm secondary" onclick="togglePinMemo(' + m.id + ')">' + esc(pinLabel) + '</button>' +
+              '<button type="button" class="btn sm secondary" onclick="editMemo(' + m.id + ')">' + esc(t.memoEdit) + '</button>' +
+              '<button type="button" class="btn sm danger" onclick="delMemo(' + m.id + ')">' + esc(t.btnDel) + '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    });
+    box.innerHTML = '<div class="memo-grid">' + cards.join("") + '</div>';
+  }
+
+  function renderGcalSources(t) {
+    const ul = document.getElementById("gcalSourceList");
+    if (!ul) return;
+    const sources = state.gcalSources || [];
+    if (!sources.length) {
+      ul.innerHTML = '<li class="item-sub">' + esc(t.pGcalHint) + '</li>';
+      return;
+    }
+    const rows = sources.map(function(s) {
+      const accText = (s.resolvedAccount && s.resolvedAccount !== s.calendarId)
+        ? (s.calendarId + " · " + s.resolvedAccount)
+        : (s.resolvedAccount || s.calendarId);
+      return (
+        '<li>' +
+          '<div class="item-main">' +
+            '<div class="item-title"><span class="tag tag-gcal">' + esc(t.gcalBadge) + '</span>' + esc(s.label) + '</div>' +
+            '<div class="item-sub">' + esc(accText) + '</div>' +
+          '</div>' +
+          '<button type="button" class="btn sm danger" onclick="delGcalSource(\'' + esc(s.id) + '\')">' + esc(t.btnDel) + '</button>' +
+        '</li>'
+      );
+    });
+    ul.innerHTML = rows.join("");
+  }
+
+  function applyTranslations() {
+    const t = I18N[curLang];
+    document.getElementById("lang-zh").classList.toggle("active", curLang === "zh");
+    document.getElementById("lang-de").classList.toggle("active", curLang === "de");
+    document.getElementById("appTitle").textContent = t.appTitle;
+    document.getElementById("lblNavHome").textContent = t.navHome;
+    document.getElementById("lblNavEvents").textContent = t.navEvents;
+    document.getElementById("lblNavTrash").textContent = t.navTrash;
+    document.getElementById("lblNavShop").textContent = t.navShop;
+    document.getElementById("lblNavRecipes").textContent = t.navRecipes;
+
+    const navIcons = {
+      "nav-home": "🏠",
+      "nav-events": "📅",
+      "nav-trash": "🗑️",
+      "nav-shop": "🛒",
+      "nav-recipes": "🍳"
+    };
+    Object.keys(navIcons).forEach(function(btnId) {
+      const iconEl = document.querySelector("#" + btnId + " .icon");
+      if (iconEl) iconEl.textContent = navIcons[btnId];
+    });
+
+    document.getElementById("hHomeCalendar").textContent = t.hHomeCalendar;
+    document.getElementById("hHomeMemo").textContent = t.hHomeMemo;
+    document.getElementById("memoTitle").placeholder = t.memoTitlePh;
+    document.getElementById("memoText").placeholder = t.memoTextPh;
+    document.getElementById("btnAddMemo").textContent = t.btnAdd;
+
+    syncEventFormMode();
+    document.getElementById("hAllEvents").textContent = t.hAllEvents;
+    document.getElementById("btnFilterEvents").textContent = t.btnFilter;
+    document.getElementById("btnBatchDelEvents").textContent = t.btnBatchDel;
+    document.getElementById("btnClearPastEvents").textContent = t.btnClearPast;
+    updateSelectAllButtonLabel();
+    document.getElementById("hGcalSources").textContent = t.hGcalSources;
+    document.getElementById("btnSyncGcal").textContent = t.btnSyncGcal;
+    document.getElementById("btnAddGcal").textContent = t.btnAddGcal;
+    document.getElementById("pGcalHint").textContent = t.pGcalHint;
+    document.getElementById("gcalLabel").placeholder = t.gcalLabelPh;
+    document.getElementById("gcalId").placeholder = t.gcalIdPh;
+
+    document.getElementById("evWhoInput").placeholder = t.whoInputPh;
+    document.getElementById("evSearch").placeholder = t.evSearchPh;
+    document.getElementById("evTitle").placeholder = t.evTitlePh;
+    document.getElementById("evNote").placeholder = t.evNotePh;
+    document.getElementById("hAddTrash").textContent = t.hAddTrash;
+    document.getElementById("hTrashList").textContent = t.hTrashList;
+    syncHidePastTrashBtn();
+    document.getElementById("trNote").placeholder = t.trNotePh;
+    document.getElementById("btnAddTrash").textContent = t.btnAdd;
+    document.getElementById("sumBulkTrash").textContent = t.sumBulkTrash;
+    document.getElementById("pBulkHint").textContent = t.pBulkHint;
+    document.getElementById("trBulk").placeholder = t.trBulkPh;
+    document.getElementById("btnBulkTrash").textContent = t.btnBulkTrash;
+    const trOpts = [];
+    t.trashTypes.forEach(function(c) { trOpts.push('<option value="' + esc(c) + '">' + esc(c) + '</option>'); });
+    const trOptsHtml = trOpts.join("");
+    const trTypeEl = document.getElementById("trType");
+    const trBulkTypeEl = document.getElementById("trBulkType");
+    const prevTypeIdx = trTypeEl.selectedIndex >= 0 ? trTypeEl.selectedIndex : 0;
+    const prevBulkIdx = trBulkTypeEl.selectedIndex >= 0 ? trBulkTypeEl.selectedIndex : 0;
+    trTypeEl.innerHTML = trOptsHtml;
+    trBulkTypeEl.innerHTML = trOptsHtml;
+    trTypeEl.selectedIndex = Math.min(prevTypeIdx, t.trashTypes.length - 1);
+    trBulkTypeEl.selectedIndex = Math.min(prevBulkIdx, t.trashTypes.length - 1);
+
+    document.getElementById("hAddShop").textContent = t.hAddShop;
+    document.getElementById("hShopList").textContent = t.hShopList;
+    const catInp = document.getElementById("shCatInput");
+    catInp.placeholder = t.shCatPh;
+    const firstDefaultCat = (t.defaultShopCats && t.defaultShopCats[0]) || "";
+    if (!catInp.value || ALL_DEFAULT_CATS.indexOf(catInp.value.trim()) !== -1) {
+      catInp.value = firstDefaultCat;
+    }
+    document.getElementById("shName").placeholder = t.shNamePh;
+    document.getElementById("shQty").placeholder = t.shQtyPh;
+    document.getElementById("btnAddShop").textContent = t.btnJoin;
+    document.getElementById("btnClearDoneShop").textContent = t.btnClearDone;
+    document.getElementById("hAddRecipe").textContent = t.hAddRecipe;
+    document.getElementById("rcTitle").placeholder = t.rcTitlePh;
+    document.getElementById("rcTag").placeholder = t.rcTagPh;
+    document.getElementById("rcIng").placeholder = t.rcIngPh;
+    document.getElementById("rcSteps").placeholder = t.rcStepsPh;
+    document.getElementById("btnAddRecipe").textContent = t.btnSaveRecipe;
+    updateAuthUI();
+    refreshWhoFilter();
+    refreshShopCatFilter();
+    renderChips();
+  }
+
+  function buildTrashTypeFilterHtml(t) {
+    const opts = getTrashFilterOptions(t);
+    const matched = opts.some(function(c) { return c.toLowerCase() === selectedTrashFilter.toLowerCase(); });
+    if (!matched) selectedTrashFilter = "__ALL__";
+    const items = ['<option value="__ALL__"' + (selectedTrashFilter === "__ALL__" ? " selected" : "") + '>' + esc(t.filterAllTrashType) + '</option>'];
+    opts.forEach(function(c) {
+      const isSel = selectedTrashFilter.toLowerCase() === c.toLowerCase();
+      items.push('<option value="' + esc(c) + '"' + (isSel ? " selected" : "") + '>' + esc(c) + '</option>');
+    });
+    return '<span class="th-type-filter"><span>' + esc(t.colType) + '</span><select id="trFilterType" onchange="onTrashTypeFilterChange(this)">' + items.join("") + '</select></span>';
+  }
+
+  function matchesWhoFilter(ev, fWho) {
+    if (!fWho || fWho === "__ALL__") return true;
+    const target = fWho.trim().toLowerCase();
+    const wl = (ev.whoList || []).map(function(w) { return String(w || "").trim().toLowerCase(); });
+    if (wl.indexOf(target) !== -1) return true;
+    const titleStr = String(ev.title || "").toLowerCase();
+    const srcStr = String(ev.sourceLabel || "").toLowerCase();
+    const accStr = String(ev.accountLabel || ev.calendarId || "").toLowerCase();
+    return titleStr.indexOf(target) !== -1 || srcStr.indexOf(target) !== -1 || accStr.indexOf(target) !== -1;
+  }
+
+  function renderAll() {
+    const t = I18N[curLang];
+    refreshWhoFilter();
+    refreshShopCatFilter();
+    renderGcalSources(t);
+    syncHidePastTrashBtn();
+
+    renderUpcomingBanner(t);
+
+    const trDateVal = document.getElementById("trDate").value;
+    const y = (trDateVal && trDateVal.slice(0, 4)) || String(new Date().getFullYear());
+    document.getElementById("trashQuotaBox").innerHTML = renderQuota(getWasteStats(y), false);
+    document.getElementById("homeTrashQuota").innerHTML = renderQuota(getWasteStats(String(new Date().getFullYear())), true);
+
+    renderHomeCalendar(t);
+    renderHomeMemos(t);
+
+    const kw = document.getElementById("evSearch").value.trim().toLowerCase();
+    const fWho = document.getElementById("evFilterWho").value;
+    const evs = getCombinedEvents().filter(function(e) {
+      const wl = e.whoList || [];
+      const srcLabel = formatGcalSourceTag(e);
+      const whoOk = matchesWhoFilter(e, fWho);
+      const kwOk = !kw || [e.title, wl.join(" "), srcLabel, e.note, e.date].join(" ").toLowerCase().indexOf(kw) !== -1;
+      return whoOk && kwOk;
+    });
+    lastFilteredEventKeys = evs.map(function(e) { return getEventRowKey(e, !!e.isGcal); });
+    updateSelectAllButtonLabel();
+
+    function whoTags(e) {
+      const out = [];
+      if (e.isGcal) {
+        out.push('<span class="tag tag-gcal">' + esc(t.gcalBadge) + '</span>');
+        out.push('<span class="tag tag-src">[' + esc(formatGcalSourceTag(e)) + ']</span>');
+      }
+      (e.whoList || []).forEach(function(w) { out.push('<span class="tag tag-who">' + esc(w) + '</span>'); });
+      return out.join("");
+    }
+    const evRows = [];
+    evs.forEach(function(e) {
+      const rowKey = getEventRowKey(e, !!e.isGcal);
+      const isChecked = selectedEventKeys.has(rowKey) ? "checked" : "";
+      const metaParts = [esc(e.date) + " " + esc(e.time || "")];
+      if (e.isGcal && e.accountLabel) {
+        metaParts.push(esc(e.accountLabel));
+      } else if (e.isGcal && e.calendarId) {
+        metaParts.push(esc(e.calendarId));
+      }
+      if (e.note) metaParts.push(esc(e.note));
+      const sub = metaParts.join(" | ");
+      const actionsHtml = e.isGcal
+        ? '<div class="row-actions">' +
+            '<button type="button" class="btn sm danger" onclick="delGcalEvent(\'' + esc(e.id) + '\')">' + esc(t.btnDel) + '</button>' +
+          '</div>'
+        : '<div class="row-actions">' +
+            '<button type="button" class="btn sm secondary" onclick="editEvent(\'' + esc(e.id) + '\')">' + esc(t.btnEdit) + '</button>' +
+            '<button type="button" class="btn sm danger" onclick="delEvent(\'' + esc(e.id) + '\')">' + esc(t.btnDel) + '</button>' +
+          '</div>';
+      evRows.push(
+        '<li>' +
+          '<input type="checkbox" class="ev-check" ' + isChecked + ' onchange="toggleEventSelect(\'' + esc(rowKey) + '\', this.checked)" />' +
+          '<div class="item-main"><div class="item-title">' + dayBadge(e.date) + whoTags(e) + esc(e.title) + '</div><div class="item-sub">' + sub + '</div></div>' +
+          actionsHtml +
+        '</li>'
+      );
+    });
+    document.getElementById("eventList").innerHTML = evRows.length ? evRows.join("") : '<li class="item-sub">' + esc(t.emptyEvents) + '</li>';
+
+    const typeHeaderHtml = buildTrashTypeFilterHtml(t);
+    if (!state.trash.length) {
+      document.getElementById("trashList").innerHTML =
+        '<table class="trash-table"><thead><tr>' +
+          '<th>' + esc(t.colDate) + '</th>' +
+          '<th>' + typeHeaderHtml + '</th>' +
+          '<th>' + esc(t.colExpired) + '</th>' +
+          '<th>' + esc(t.colDone) + '</th>' +
+          '<th>' + esc(t.colAction) + '</th>' +
+        '</tr></thead><tbody><tr><td colspan="5" class="item-sub">' + esc(t.emptyTrash) + '</td></tr></tbody></table>';
+    } else {
+      const filteredTrash = state.trash.filter(function(tr) {
+        if (hidePastTrash && tr.date && dayDiff(tr.date) < 0) return false;
+        if (selectedTrashFilter === "__ALL__") return true;
+        return String(tr.type || "").trim().toLowerCase() === selectedTrashFilter.trim().toLowerCase();
+      });
+      const trBodyRows = [];
+      filteredTrash.forEach(function(tr) {
+        const chk = tr.done ? "checked" : "";
+        const noteHtml = tr.note ? '<div class="trash-note-sub">' + esc(tr.note) + '</div>' : "";
+        trBodyRows.push(
+          '<tr class="' + (tr.done ? "done" : "") + '">' +
+            '<td><div class="trash-date-text">' + esc(tr.date) + '</div>' + noteHtml + '</td>' +
+            '<td>' + binBadge(tr.type) + '</td>' +
+            '<td>' + dayBadge(tr.date) + '</td>' +
+            '<td><label class="check-label"><input type="checkbox" ' + chk + ' onchange="toggleTrashDone(' + tr.id + ')" /><span>' + esc(t.checkedTrash) + '</span></label></td>' +
+            '<td><button type="button" class="btn sm danger" onclick="delTrash(' + tr.id + ')">' + esc(t.btnDel) + '</button></td>' +
+          '</tr>'
+        );
+      });
+      const bodyContent = trBodyRows.length
+        ? trBodyRows.join("")
+        : '<tr><td colspan="5" class="item-sub">' + esc(t.emptyTrash) + '</td></tr>';
+      document.getElementById("trashList").innerHTML =
+        '<table class="trash-table"><thead><tr>' +
+          '<th>' + esc(t.colDate) + '</th>' +
+          '<th>' + typeHeaderHtml + '</th>' +
+          '<th>' + esc(t.colExpired) + '</th>' +
+          '<th>' + esc(t.colDone) + '</th>' +
+          '<th>' + esc(t.colAction) + '</th>' +
+        '</tr></thead><tbody>' + bodyContent + '</tbody></table>';
+    }
+
+    const fCat = document.getElementById("shFilterCat").value;
+    const shList = state.shop.filter(function(s) { return fCat === "__ALL__" || (s.cat || "").trim() === fCat; });
+    function fmtShop(s) {
+      return esc(s.name) + (s.qty ? '<span class="qty-badge">' + esc(s.qty) + '</span>' : "");
+    }
+    const shRows = [];
+    shList.forEach(function(s) {
+      const icon = s.done ? "✅" : "⬜";
+      shRows.push('<li class="' + (s.done ? "done" : "") + '"><div class="item-main" style="cursor:pointer;" onclick="toggleShop(' + s.id + ')"><div class="item-title">' + icon + ' <span class="tag tag-cat">' + esc(s.cat) + '</span>' + fmtShop(s) + '</div></div><button type="button" class="btn sm danger" onclick="delShop(' + s.id + ')">' + esc(t.btnDel) + '</button></li>');
+    });
+    document.getElementById("shopList").innerHTML = shRows.length ? shRows.join("") : '<li class="item-sub">' + esc(t.emptyShop) + '</li>';
+
+    const rcRows = [];
+    state.recipes.forEach(function(r) {
+      const ingBox = r.ing ? '<div class="recipe-ing"><strong>' + esc(t.ingLabel) + '</strong>\n' + esc(r.ing) + '</div>' : "";
+      const stepBox = r.steps ? '<div style="font-size:0.92rem;white-space:pre-line;line-height:1.5;">' + esc(r.steps) + '</div>' : "";
+      rcRows.push('<div class="card recipe-card"><h2><span>🍳 ' + esc(r.title) + ' <span class="tag tag-cat">' + esc(r.tag) + '</span></span><div><button type="button" class="btn sm" onclick="ingToShop(' + r.id + ')">' + esc(t.btnIngToShop) + '</button> <button type="button" class="btn sm danger" onclick="delRecipe(' + r.id + ')">' + esc(t.btnDel) + '</button></div></h2>' + ingBox + stepBox + '</div>');
+    });
+    document.getElementById("recipeList").innerHTML = rcRows.length ? rcRows.join("") : '<div class="card item-sub">' + esc(t.emptyRecipes) + '</div>';
+  }
+
+  applyTranslations();
+  renderAll();
+</script>
+</body>
+</html>
