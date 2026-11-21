@@ -131,7 +131,11 @@
     .tab-page { display: none; }
     .tab-page.active { display: block; }
     .recipe-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-    .recipe-ing { background: #f9fafb; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin: 8px 0; white-space: pre-line; }
+    .recipe-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .recipe-title-btn { background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--text); cursor: pointer; text-align: left; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .recipe-title-btn:hover { color: var(--primary); }
+    .recipe-detail { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+    .recipe-ing { background: #f9fafb; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin: 0 0 8px 0; white-space: pre-line; }
   </style>
 </head>
 <body>
@@ -281,13 +285,33 @@
       <h2 id="hAddRecipe">新增家庭食譜</h2>
       <div class="form-row">
         <input type="text" id="rcTitle" />
-        <input type="text" id="rcTag" style="max-width:190px;" />
+        <div class="combo-wrap" id="rcTagPickerWrap">
+          <input type="text" id="rcTag" autocomplete="off"
+            onfocus="openRecipeTagDropdown()" oninput="renderRecipeTagDropdown()" onkeydown="handleRecipeTagKeydown(event)" />
+          <div id="rcTagDropdown" class="dropdown-panel"></div>
+        </div>
       </div>
       <div class="form-row"><textarea id="rcIng"></textarea></div>
       <div class="form-row"><textarea id="rcSteps"></textarea></div>
-      <button id="btnAddRecipe" type="button" class="btn" onclick="addRecipe()">儲存食譜</button>
+      <div class="row-actions">
+        <button id="btnAddRecipe" type="button" class="btn" onclick="addRecipe()">儲存食譜</button>
+        <button id="btnCancelEditRecipe" type="button" class="btn secondary" style="display:none;" onclick="cancelEditRecipe()">取消</button>
+      </div>
     </div>
-    <div id="recipeList"></div>
+    <div class="card">
+      <h2>
+        <span id="hRecipeList">食譜清單</span>
+        <div class="row-actions">
+          <button id="btnExpandAllRecipes" type="button" class="btn sm secondary" onclick="toggleExpandAllRecipes(true)">全部展開</button>
+          <button id="btnCollapseAllRecipes" type="button" class="btn sm secondary" onclick="toggleExpandAllRecipes(false)">全部收合</button>
+        </div>
+      </h2>
+      <div class="form-row">
+        <select id="rcFilterTag" onchange="renderAll()" style="max-width:220px;"></select>
+        <input type="text" id="rcSearch" oninput="renderAll()" onchange="renderAll()" />
+      </div>
+      <div id="recipeList"></div>
+    </div>
   </section>
 </main>
 
@@ -373,19 +397,25 @@
       shCatPh: "商場種類（單選，打字可篩選或新增）",
       shNamePh: "品項名稱（例：牛奶、雞蛋）", shQtyPh: "數量（例：2 瓶）",
       filterAllShopCat: "全部商場", btnJoin: "加入", btnClearDone: "清除已買",
-      hAddRecipe: "新增家庭食譜", rcTitlePh: "料理名稱", rcTagPh: "分類（例：家常菜、烘焙點心）",
+      hAddRecipe: "新增家庭食譜", hEditRecipe: "編輯家庭食譜", hRecipeList: "食譜清單",
+      defaultRecipeTags: ["家常菜", "煎炒", "湯品", "烘焙點心", "便當菜"],
+      rcTitlePh: "料理名稱", rcTagPh: "分類（點選或打字新增，例：家常菜）",
       rcIngPh: "食材清單（每行一項）", rcStepsPh: "料理步驟與秘訣...",
-      btnSaveRecipe: "儲存食譜", btnIngToShop: "食材加入購物", ingLabel: "食材：",
+      rcSearchPh: "搜尋菜名、食材或步驟...", filterAllRecipeTag: "全部分類",
+      btnSaveRecipe: "儲存食譜", btnSaveRecipeEdit: "儲存修改",
+      btnExpand: "展開", btnCollapse: "收合",
+      btnExpandAll: "全部展開", btnCollapseAll: "全部收合",
+      ingLabel: "食材：", stepsLabel: "步驟：",
       today: "今天", tomorrow: "明天", inDays: function(d) { return d + " 天後"; }, expired: "已過期",
       emptyEvents: "目前沒有行程紀錄",
       emptyTrash: "尚無符合的倒垃圾日期",
       emptyShop: "購物車是空的",
       emptyRecipes: "還沒有儲存食譜",
+      emptyFilteredRecipes: "沒有符合目前分類或搜尋條件的食譜",
       alertDateTitle: "請填寫日期與事項名稱", alertTrashDate: "請選擇倒垃圾日期",
       alertBulkErr: "格式不符，請確認每行為 DD MM YYYY 或 DD.MM.YYYY",
       alertBulkOk: function(n) { return "成功匯入 " + n + " 筆倒垃圾日期！"; },
-      alertRecipeTitle: "請填寫料理名稱", confirmDelRecipe: "確定刪除此食譜？",
-      alertIngAdded: function(n) { return "已將 " + n + " 項食材加入購物清單！"; }
+      alertRecipeTitle: "請填寫料理名稱", confirmDelRecipe: "確定刪除此食譜？"
     },
     de: {
       appTitle: "Castor Familienplaner", localMode: "Lokal", cloudSyncing: "Cloud-Sync aktiv",
@@ -452,19 +482,25 @@
       shCatPh: "Geschäft / Markt",
       shNamePh: "Artikel (z.B. Milch)", shQtyPh: "Menge (z.B. 2x)",
       filterAllShopCat: "Alle Geschäfte", btnJoin: "Hinzufügen", btnClearDone: "Erledigte löschen",
-      hAddRecipe: "Neues Rezept", rcTitlePh: "Gerichtname", rcTagPh: "Kategorie",
+      hAddRecipe: "Neues Rezept", hEditRecipe: "Rezept bearbeiten", hRecipeList: "Rezepte",
+      defaultRecipeTags: ["Alltag", "Pfanne", "Suppe", "Backen", "Meal Prep"],
+      rcTitlePh: "Gerichtname", rcTagPh: "Kategorie (wählen oder neu eingeben)",
       rcIngPh: "Zutaten (eine pro Zeile)", rcStepsPh: "Zubereitung...",
-      btnSaveRecipe: "Rezept speichern", btnIngToShop: "Zutaten auf Einkaufsliste", ingLabel: "Zutaten:",
+      rcSearchPh: "Gericht, Zutat oder Schritt suchen...", filterAllRecipeTag: "Alle Kategorien",
+      btnSaveRecipe: "Rezept speichern", btnSaveRecipeEdit: "Änderung speichern",
+      btnExpand: "Aufklappen", btnCollapse: "Zuklappen",
+      btnExpandAll: "Alle aufklappen", btnCollapseAll: "Alle zuklappen",
+      ingLabel: "Zutaten:", stepsLabel: "Zubereitung:",
       today: "Heute", tomorrow: "Morgen", inDays: function(d) { return "in " + d + " Tagen"; }, expired: "Vorbei",
       emptyEvents: "Noch keine Termine",
       emptyTrash: "Keine passenden Abfuhrtermine",
       emptyShop: "Einkaufsliste ist leer",
       emptyRecipes: "Noch keine Rezepte",
+      emptyFilteredRecipes: "Keine passenden Rezepte gefunden",
       alertDateTitle: "Bitte Datum und Titel eingeben", alertTrashDate: "Bitte Datum auswählen",
       alertBulkErr: "Ungültiges Format. Bitte TT MM JJJJ oder TT.MM.JJJJ verwenden",
       alertBulkOk: function(n) { return n + " Termine importiert!"; },
-      alertRecipeTitle: "Bitte Gerichtname eingeben", confirmDelRecipe: "Rezept löschen?",
-      alertIngAdded: function(n) { return n + " Zutaten hinzugefügt!"; }
+      alertRecipeTitle: "Bitte Gerichtname eingeben", confirmDelRecipe: "Rezept löschen?"
     }
   };
 
@@ -493,7 +529,7 @@
   let gcalLastSyncAt = localStorage.getItem("familyHubGcalLastSyncAt") || "";
 
   let state = JSON.parse(localStorage.getItem("familyHubData") || "null") || {
-    events: [], trash: [], shop: [], recipes: [], memos: [], customWho: [], customShopCats: [], gcalSources: [], gcalCache: [], gcalLastSyncAt: ""
+    events: [], trash: [], shop: [], recipes: [], memos: [], customWho: [], customShopCats: [], customRecipeTags: [], gcalSources: [], gcalCache: [], gcalLastSyncAt: ""
   };
   state.trash = (state.trash || []).map(function(tr) { return Object.assign({ done: false }, tr); });
   state.events = (state.events || []).map(function(ev) {
@@ -503,6 +539,7 @@
   state.memos = Array.isArray(state.memos) ? state.memos : [];
   state.customWho = Array.isArray(state.customWho) ? state.customWho : [];
   state.customShopCats = Array.isArray(state.customShopCats) ? state.customShopCats : [];
+  state.customRecipeTags = Array.isArray(state.customRecipeTags) ? state.customRecipeTags : [];
   if (!Array.isArray(state.gcalSources) || !state.gcalSources.length) {
     state.gcalSources = [{ id: "primary", label: curLang === "de" ? "Mein Kalender" : "我的主日曆", calendarId: "primary", resolvedAccount: "" }];
   }
@@ -520,6 +557,7 @@
   let selectedEventKeys = new Set();
   let lastFilteredEventKeys = [];
   let hidePastTrash = true;
+  let expandedRecipeIds = new Set();
 
   function todayIso() {
     const d = new Date();
@@ -535,6 +573,7 @@
 
   let selectedWhoList = [];
   let editingEventId = null;
+  let editingRecipeId = null;
   let selectedTrashFilter = "__ALL__";
   let currentUser = null;
   let gcalAccessToken = null;
@@ -592,6 +631,25 @@
     } else {
       hEl.textContent = t.hAddEvent;
       btnEl.textContent = t.btnAdd;
+      cancelEl.textContent = t.btnCancel;
+      cancelEl.style.display = "none";
+    }
+  }
+
+  function syncRecipeFormMode() {
+    const t = I18N[curLang];
+    const hEl = document.getElementById("hAddRecipe");
+    const btnEl = document.getElementById("btnAddRecipe");
+    const cancelEl = document.getElementById("btnCancelEditRecipe");
+    if (!hEl || !btnEl || !cancelEl) return;
+    if (editingRecipeId !== null) {
+      hEl.textContent = t.hEditRecipe;
+      btnEl.textContent = t.btnSaveRecipeEdit;
+      cancelEl.textContent = t.btnCancel;
+      cancelEl.style.display = "inline-block";
+    } else {
+      hEl.textContent = t.hAddRecipe;
+      btnEl.textContent = t.btnSaveRecipe;
       cancelEl.textContent = t.btnCancel;
       cancelEl.style.display = "none";
     }
@@ -1038,6 +1096,7 @@
             memos: Array.isArray(d.memos) ? d.memos : [],
             customWho: Array.isArray(d.customWho) ? d.customWho : [],
             customShopCats: Array.isArray(d.customShopCats) ? d.customShopCats : [],
+            customRecipeTags: Array.isArray(d.customRecipeTags) ? d.customRecipeTags : [],
             gcalSources: Array.isArray(d.gcalSources) && d.gcalSources.length
               ? d.gcalSources
               : [{ id: "primary", label: I18N[curLang].gcalBadge, calendarId: "primary", resolvedAccount: "" }],
@@ -1084,6 +1143,114 @@
     });
     return out;
   }
+
+  function getRecipeTags() {
+    const t = I18N[curLang];
+    const seen = {};
+    const out = [];
+    (t.defaultRecipeTags || []).forEach(function(c) {
+      const clean = String(c || "").trim();
+      const key = clean.toLowerCase();
+      if (clean && !seen[key]) { seen[key] = true; out.push({ label: clean, tag: t.whoPresetHint }); }
+    });
+    const extraTags = (state.customRecipeTags || []).concat(
+      (state.recipes || []).map(function(r) { return String(r.tag || "").trim(); }).filter(Boolean)
+    );
+    extraTags.forEach(function(c) {
+      const clean = String(c || "").trim();
+      const key = clean.toLowerCase();
+      if (clean && !seen[key]) { seen[key] = true; out.push({ label: clean, tag: t.whoSavedHint }); }
+    });
+    return out;
+  }
+
+  function registerRecipeTag(tagVal) {
+    const t = I18N[curLang];
+    const clean = String(tagVal || "").trim();
+    if (!clean) return;
+    const defaults = (t.defaultRecipeTags || []).map(function(x) { return String(x).toLowerCase(); });
+    const customs = (state.customRecipeTags || []).map(function(x) { return String(x).toLowerCase(); });
+    if (defaults.indexOf(clean.toLowerCase()) === -1 && customs.indexOf(clean.toLowerCase()) === -1) {
+      state.customRecipeTags.push(clean);
+    }
+  }
+
+  window.openRecipeTagDropdown = function() {
+    renderRecipeTagDropdown();
+    const dd = document.getElementById("rcTagDropdown");
+    if (dd) dd.classList.add("open");
+  };
+  window.selectRecipeTag = function(val) {
+    const clean = String(val || "").trim();
+    if (!clean) return;
+    registerRecipeTag(clean);
+    document.getElementById("rcTag").value = clean;
+    const dd = document.getElementById("rcTagDropdown");
+    if (dd) dd.classList.remove("open");
+    refreshRecipeTagFilter();
+  };
+  window.renderRecipeTagDropdown = function() {
+    const t = I18N[curLang];
+    const dd = document.getElementById("rcTagDropdown");
+    if (!dd) return;
+    const q = document.getElementById("rcTag").value.trim();
+    const ql = q.toLowerCase();
+    const all = getRecipeTags();
+    const list = all.filter(function(x) { return !ql || x.label.toLowerCase().indexOf(ql) !== -1; });
+    const rows = [];
+    if (q && !all.some(function(x) { return x.label.toLowerCase() === ql; })) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(q) + '" onclick="onPickRecipeTag(event,this)"><span><strong>+ ' + esc(q) + '</strong></span><span class="hint">' + esc(t.whoAddNewHint) + '</span></div>');
+    }
+    list.forEach(function(item) {
+      rows.push('<div class="dropdown-item" data-val="' + esc(item.label) + '" onclick="onPickRecipeTag(event,this)"><span>' + esc(item.label) + '</span><span class="hint">' + esc(item.tag) + '</span></div>');
+    });
+    dd.innerHTML = rows.join("") || '<div class="dropdown-item"><span class="hint">' + esc(t.rcTagPh) + '</span></div>';
+  };
+  window.onPickRecipeTag = function(ev, el) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    if (el && el.dataset) window.selectRecipeTag(el.dataset.val);
+  };
+  window.handleRecipeTagKeydown = function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const v = document.getElementById("rcTag").value.trim();
+      if (v) window.selectRecipeTag(v);
+    }
+  };
+  function refreshRecipeTagFilter() {
+    const t = I18N[curLang];
+    const el = document.getElementById("rcFilterTag");
+    if (!el) return;
+    const prev = el.value;
+    const opts = getRecipeTags().map(function(x) { return x.label; });
+    const items = ['<option value="__ALL__">' + esc(t.filterAllRecipeTag) + '</option>'];
+    opts.forEach(function(c) {
+      const isSel = prev && prev.toLowerCase() === c.toLowerCase();
+      items.push('<option value="' + esc(c) + '"' + (isSel ? " selected" : "") + '>' + esc(c) + '</option>');
+    });
+    el.innerHTML = items.join("");
+    if (prev && opts.some(function(c) { return c.toLowerCase() === prev.toLowerCase(); })) {
+      el.value = prev;
+    } else {
+      el.value = "__ALL__";
+    }
+  }
+
+  window.toggleRecipeExpand = function(id) {
+    const key = String(id);
+    if (expandedRecipeIds.has(key)) expandedRecipeIds.delete(key);
+    else expandedRecipeIds.add(key);
+    renderAll();
+  };
+
+  window.toggleExpandAllRecipes = function(expand) {
+    if (expand) {
+      expandedRecipeIds = new Set((state.recipes || []).map(function(r) { return String(r.id); }));
+    } else {
+      expandedRecipeIds.clear();
+    }
+    renderAll();
+  };
 
   window.openShopCatDropdown = function() {
     renderShopCatDropdown();
@@ -1266,6 +1433,11 @@
     const catWrap = document.getElementById("shopCatPickerWrap");
     if (catWrap && !catWrap.contains(e.target)) {
       document.getElementById("shopCatDropdown").classList.remove("open");
+    }
+    const rcTagWrap = document.getElementById("rcTagPickerWrap");
+    if (rcTagWrap && !rcTagWrap.contains(e.target)) {
+      const rDd = document.getElementById("rcTagDropdown");
+      if (rDd) rDd.classList.remove("open");
     }
   });
 
@@ -1493,37 +1665,71 @@
     saveState();
   };
 
+  function resetRecipeForm() {
+    editingRecipeId = null;
+    ["rcTitle", "rcTag", "rcIng", "rcSteps"].forEach(function(id) { document.getElementById(id).value = ""; });
+    syncRecipeFormMode();
+  }
+
+  window.editRecipe = function(id) {
+    const r = state.recipes.find(function(x) { return String(x.id) === String(id); });
+    if (!r) return;
+    editingRecipeId = r.id;
+    expandedRecipeIds.add(String(r.id));
+    document.getElementById("rcTitle").value = r.title || "";
+    document.getElementById("rcTag").value = r.tag || "";
+    document.getElementById("rcIng").value = r.ing || "";
+    document.getElementById("rcSteps").value = r.steps || "";
+    syncRecipeFormMode();
+    window.switchTab("recipes");
+    document.getElementById("rcTitle").focus();
+  };
+
+  window.cancelEditRecipe = function() {
+    resetRecipeForm();
+  };
+
   window.addRecipe = function() {
     const t = I18N[curLang];
     const title = document.getElementById("rcTitle").value.trim();
     if (!title) return alert(t.alertRecipeTitle);
-    state.recipes.unshift({
-      id: Date.now(),
-      title: title,
-      tag: document.getElementById("rcTag").value.trim() || "Recipe",
-      ing: document.getElementById("rcIng").value.trim(),
-      steps: document.getElementById("rcSteps").value.trim()
-    });
-    ["rcTitle", "rcTag", "rcIng", "rcSteps"].forEach(function(id) { document.getElementById(id).value = ""; });
+    const tag = document.getElementById("rcTag").value.trim() || ((t.defaultRecipeTags && t.defaultRecipeTags[0]) || "Recipe");
+    const ing = document.getElementById("rcIng").value.trim();
+    const steps = document.getElementById("rcSteps").value.trim();
+    registerRecipeTag(tag);
+
+    let targetId = editingRecipeId;
+    if (editingRecipeId !== null) {
+      const target = state.recipes.find(function(x) { return String(x.id) === String(editingRecipeId); });
+      if (target) {
+        target.title = title;
+        target.tag = tag;
+        target.ing = ing;
+        target.steps = steps;
+      }
+    } else {
+      targetId = Date.now();
+      state.recipes.unshift({
+        id: targetId,
+        title: title,
+        tag: tag,
+        ing: ing,
+        steps: steps
+      });
+    }
+    if (targetId !== null) expandedRecipeIds.add(String(targetId));
+    resetRecipeForm();
     saveState();
   };
   window.delRecipe = function(id) {
     if (confirm(I18N[curLang].confirmDelRecipe)) {
-      state.recipes = state.recipes.filter(function(x) { return x.id !== id; });
+      expandedRecipeIds.delete(String(id));
+      if (editingRecipeId !== null && String(editingRecipeId) === String(id)) {
+        resetRecipeForm();
+      }
+      state.recipes = state.recipes.filter(function(x) { return String(x.id) !== String(id); });
       saveState();
     }
-  };
-  window.ingToShop = function(id) {
-    const t = I18N[curLang];
-    const defaultCat = (t.defaultShopCats && t.defaultShopCats[0]) || "";
-    const r = state.recipes.find(function(x) { return x.id === id; });
-    if (!r || !r.ing) return;
-    const lines = r.ing.split("\n").map(function(s) { return s.trim(); }).filter(Boolean);
-    lines.forEach(function(line, i) {
-      state.shop.unshift({ id: Date.now() + i, cat: defaultCat, name: line + " (" + r.title + ")", qty: "", done: false });
-    });
-    alert(t.alertIngAdded(lines.length));
-    saveState();
   };
 
   function getCombinedEvents() {
@@ -1826,15 +2032,19 @@
     document.getElementById("shQty").placeholder = t.shQtyPh;
     document.getElementById("btnAddShop").textContent = t.btnJoin;
     document.getElementById("btnClearDoneShop").textContent = t.btnClearDone;
-    document.getElementById("hAddRecipe").textContent = t.hAddRecipe;
+    syncRecipeFormMode();
+    document.getElementById("hRecipeList").textContent = t.hRecipeList;
+    document.getElementById("btnExpandAllRecipes").textContent = t.btnExpandAll;
+    document.getElementById("btnCollapseAllRecipes").textContent = t.btnCollapseAll;
     document.getElementById("rcTitle").placeholder = t.rcTitlePh;
     document.getElementById("rcTag").placeholder = t.rcTagPh;
     document.getElementById("rcIng").placeholder = t.rcIngPh;
     document.getElementById("rcSteps").placeholder = t.rcStepsPh;
-    document.getElementById("btnAddRecipe").textContent = t.btnSaveRecipe;
+    document.getElementById("rcSearch").placeholder = t.rcSearchPh;
     updateAuthUI();
     refreshWhoFilter();
     refreshShopCatFilter();
+    refreshRecipeTagFilter();
     renderChips();
   }
 
@@ -1865,6 +2075,7 @@
     const t = I18N[curLang];
     refreshWhoFilter();
     refreshShopCatFilter();
+    refreshRecipeTagFilter();
     renderGcalSources(t);
     syncHidePastTrashBtn();
 
@@ -1984,13 +2195,42 @@
     });
     document.getElementById("shopList").innerHTML = shRows.length ? shRows.join("") : '<li class="item-sub">' + esc(t.emptyShop) + '</li>';
 
-    const rcRows = [];
-    state.recipes.forEach(function(r) {
-      const ingBox = r.ing ? '<div class="recipe-ing"><strong>' + esc(t.ingLabel) + '</strong>\n' + esc(r.ing) + '</div>' : "";
-      const stepBox = r.steps ? '<div style="font-size:0.92rem;white-space:pre-line;line-height:1.5;">' + esc(r.steps) + '</div>' : "";
-      rcRows.push('<div class="card recipe-card"><h2><span>🍳 ' + esc(r.title) + ' <span class="tag tag-cat">' + esc(r.tag) + '</span></span><div><button type="button" class="btn sm" onclick="ingToShop(' + r.id + ')">' + esc(t.btnIngToShop) + '</button> <button type="button" class="btn sm danger" onclick="delRecipe(' + r.id + ')">' + esc(t.btnDel) + '</button></div></h2>' + ingBox + stepBox + '</div>');
+    const fRecipeTag = document.getElementById("rcFilterTag").value;
+    const recipeKw = document.getElementById("rcSearch").value.trim().toLowerCase();
+    const filteredRecipes = (state.recipes || []).filter(function(r) {
+      const rTag = String(r.tag || "").trim();
+      const tagOk = !fRecipeTag || fRecipeTag === "__ALL__" || rTag.toLowerCase() === fRecipeTag.trim().toLowerCase();
+      const kwOk = !recipeKw || [r.title, rTag, r.ing, r.steps].join(" ").toLowerCase().indexOf(recipeKw) !== -1;
+      return tagOk && kwOk;
     });
-    document.getElementById("recipeList").innerHTML = rcRows.length ? rcRows.join("") : '<div class="card item-sub">' + esc(t.emptyRecipes) + '</div>';
+
+    const rcRows = [];
+    filteredRecipes.forEach(function(r) {
+      const isOpen = expandedRecipeIds.has(String(r.id));
+      const ingBox = r.ing ? '<div class="recipe-ing"><strong>' + esc(t.ingLabel) + '</strong>\n' + esc(r.ing) + '</div>' : "";
+      const stepBox = r.steps ? '<div style="font-size:0.92rem;white-space:pre-line;line-height:1.5;"><strong>' + esc(t.stepsLabel) + '</strong>\n' + esc(r.steps) + '</div>' : "";
+      const detailHtml = isOpen
+        ? '<div class="recipe-detail">' + ingBox + stepBox + '</div>'
+        : "";
+      rcRows.push(
+        '<div class="card recipe-card">' +
+          '<div class="recipe-head">' +
+            '<button type="button" class="recipe-title-btn" onclick="toggleRecipeExpand(\'' + esc(r.id) + '\')">' +
+              '<span>' + (isOpen ? "▾" : "▸") + ' 🍳 ' + esc(r.title) + '</span>' +
+              '<span class="tag tag-cat">' + esc(r.tag) + '</span>' +
+            '</button>' +
+            '<div class="row-actions">' +
+              '<button type="button" class="btn sm secondary" onclick="toggleRecipeExpand(\'' + esc(r.id) + '\')">' + esc(isOpen ? t.btnCollapse : t.btnExpand) + '</button>' +
+              '<button type="button" class="btn sm secondary" onclick="editRecipe(\'' + esc(r.id) + '\')">' + esc(t.btnEdit) + '</button>' +
+              '<button type="button" class="btn sm danger" onclick="delRecipe(\'' + esc(r.id) + '\')">' + esc(t.btnDel) + '</button>' +
+            '</div>' +
+          '</div>' +
+          detailHtml +
+        '</div>'
+      );
+    });
+    const emptyRecipeMsg = !(state.recipes || []).length ? t.emptyRecipes : t.emptyFilteredRecipes;
+    document.getElementById("recipeList").innerHTML = rcRows.length ? rcRows.join("") : '<div class="card item-sub">' + esc(emptyRecipeMsg) + '</div>';
   }
 
   applyTranslations();
