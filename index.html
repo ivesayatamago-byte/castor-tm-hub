@@ -338,13 +338,13 @@
       hGcalSources: "Google 日曆來源（抓進來）",
       btnSyncGcal: "連接並同步 Google 日曆",
       btnAddGcal: "新增日曆",
-      pGcalHint: "抓好的行程會保留並同步到雲端，重新登入也不會消失；需更新最新行程時再按同步即可。",
+      pGcalHint: "僅抓取今天起 1 年內的行程並同步到雲端，重新登入也不會消失；需更新最新行程時再按同步即可。",
       lastSyncNever: "尚未同步過 Google 日曆",
-      lastSyncFmt: function(ts, count) { return "上次同步：" + ts + "（保留 " + count + " 筆行程）"; },
+      lastSyncFmt: function(ts, count) { return "上次同步：" + ts + "（1 年內共 " + count + " 筆行程）"; },
       gcalLabelPh: "人名 / 日曆名稱（例：我的主日曆、Howar）",
       gcalIdPh: "日曆 ID（自己的填 primary，他人填 Gmail 或日曆 ID）",
       gcalSyncing: "同步中...",
-      gcalSyncedAlert: function(n) { return "已同步完成（已自動去重並存入雲端），目前共有 " + n + " 筆今天起及未來的 Google 日曆行程！"; },
+      gcalSyncedAlert: function(n) { return "已同步完成（已自動去重並存入雲端），目前共有 " + n + " 筆今天起 1 年內的 Google 日曆行程！"; },
       gcalErrAlert: function(msg) { return "Google 日曆同步失敗：" + msg; },
       gcalBadge: "Google 日曆",
       defaultWho: ["Howar", "Tobias", "Maggy"],
@@ -417,13 +417,13 @@
       hGcalSources: "Google-Kalender-Quellen",
       btnSyncGcal: "Google Kalender verbinden & sync",
       btnAddGcal: "Kalender hinzufügen",
-      pGcalHint: "Importierte Termine bleiben in der Cloud gespeichert und gehen beim erneuten Login nicht verloren.",
+      pGcalHint: "Importiert Termine für die nächsten 12 Monate und speichert sie in der Cloud.",
       lastSyncNever: "Noch nicht mit Google Kalender synchronisiert",
-      lastSyncFmt: function(ts, count) { return "Letzter Sync: " + ts + " (" + count + " Termine)"; },
+      lastSyncFmt: function(ts, count) { return "Letzter Sync: " + ts + " (" + count + " Termine im nächsten Jahr)"; },
       gcalLabelPh: "Name / Kalender (z.B. Mein Kalender, Howar)",
       gcalIdPh: "Kalender-ID (eigener: primary, sonst E-Mail / ID)",
       gcalSyncing: "Synchronisiere...",
-      gcalSyncedAlert: function(n) { return "Sync fertig (Duplikate entfernt & in Cloud gespeichert): " + n + " Termine ab heute."; },
+      gcalSyncedAlert: function(n) { return "Sync fertig (Duplikate entfernt & in Cloud gespeichert): " + n + " Termine im nächsten Jahr."; },
       gcalErrAlert: function(msg) { return "Google-Kalender-Sync fehlgeschlagen: " + msg; },
       gcalBadge: "Google Kalender",
       defaultWho: ["Howar", "Tobias", "Maggy"],
@@ -820,7 +820,12 @@
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
+    const oneYearLater = new Date(now);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    oneYearLater.setHours(23, 59, 59, 999);
+
     const timeMinIso = encodeURIComponent(now.toISOString());
+    const timeMaxIso = encodeURIComponent(oneYearLater.toISOString());
     let pageToken = "";
     const collected = [];
     let guard = 0;
@@ -828,7 +833,7 @@
     do {
       guard++;
       const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodedCalId +
-        "/events?singleEvents=true&timeMin=" + timeMinIso + "&maxResults=2500" +
+        "/events?singleEvents=true&timeMin=" + timeMinIso + "&timeMax=" + timeMaxIso + "&maxResults=2500" +
         (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
       const res = await fetch(url, {
         headers: { Authorization: "Bearer " + token }
@@ -841,7 +846,8 @@
       (data.items || []).forEach(function(item, idx) {
         if (item.status === "cancelled") return;
         const dt = parseGcalDateTime(item.start);
-        if (!dt.date || dayDiff(dt.date) < 0) return;
+        const diff = dt.date ? dayDiff(dt.date) : -1;
+        if (!dt.date || diff < 0 || diff > 366) return;
         const cleanTitle = (item.summary || "(No title)").trim();
         collected.push({
           id: "gcal_" + rawCalId + "_" + (item.id || idx) + "_" + dt.date + "_" + (dt.time || "allday"),
