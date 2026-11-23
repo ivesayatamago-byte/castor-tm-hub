@@ -1211,6 +1211,17 @@
     if (dd) dd.classList.remove("open");
     refreshRecipeTagFilter();
   };
+  window.delCustomRecipeTag = function(ev, val) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    const target = String(val || "").trim().toLowerCase();
+    if (!target) return;
+    state.customRecipeTags = (state.customRecipeTags || []).filter(function(c) {
+      return String(c || "").trim().toLowerCase() !== target;
+    });
+    saveState();
+    renderRecipeTagDropdown();
+  };
+
   window.renderRecipeTagDropdown = function() {
     const t = I18N[curLang];
     const dd = document.getElementById("rcTagDropdown");
@@ -1224,13 +1235,13 @@
       rows.push('<div class="dropdown-item" data-val="' + esc(q) + '" onclick="onPickRecipeTag(event,this)"><span><strong>+ ' + esc(q) + '</strong></span><span class="hint">' + esc(t.whoAddNewHint) + '</span></div>');
     }
     list.forEach(function(item) {
-      rows.push('<div class="dropdown-item" data-val="' + esc(item.label) + '" onclick="onPickRecipeTag(event,this)"><span>' + esc(item.label) + '</span><span class="hint">' + esc(item.tag) + '</span></div>');
+      const canDel = item.tag === t.whoSavedHint;
+      const rightHtml = canDel
+        ? '<span style="display:inline-flex;align-items:center;gap:6px;"><span class="hint">' + esc(item.tag) + '</span><button type="button" class="btn sm danger" style="padding:2px 7px;font-size:0.74rem;" data-val="' + esc(item.label) + '" onclick="delCustomRecipeTag(event,this.dataset.val)">✕</button></span>'
+        : '<span class="hint">' + esc(item.tag) + '</span>';
+      rows.push('<div class="dropdown-item" data-val="' + esc(item.label) + '" onclick="onPickRecipeTag(event,this)"><span>' + esc(item.label) + '</span>' + rightHtml + '</div>');
     });
     dd.innerHTML = rows.join("") || '<div class="dropdown-item"><span class="hint">' + esc(t.rcTagPh) + '</span></div>';
-  };
-  window.onPickRecipeTag = function(ev, el) {
-    if (ev && ev.stopPropagation) ev.stopPropagation();
-    if (el && el.dataset) window.selectRecipeTag(el.dataset.val);
   };
   window.handleRecipeTagKeydown = function(e) {
     if (e.key === "Enter") {
