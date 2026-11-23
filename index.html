@@ -1166,8 +1166,15 @@
     return out;
   }
 
+  function getAllDefaultRecipeTagsLower() {
+    const zhList = (I18N.zh && I18N.zh.defaultRecipeTags) || [];
+    const deList = (I18N.de && I18N.de.defaultRecipeTags) || [];
+    return zhList.concat(deList).map(function(x) { return String(x || "").trim().toLowerCase(); });
+  }
+
   function getRecipeTags() {
     const t = I18N[curLang];
+    const allDefaultsLower = getAllDefaultRecipeTagsLower();
     const seen = {};
     const out = [];
     (t.defaultRecipeTags || []).forEach(function(c) {
@@ -1181,18 +1188,21 @@
     extraTags.forEach(function(c) {
       const clean = String(c || "").trim();
       const key = clean.toLowerCase();
-      if (clean && !seen[key]) { seen[key] = true; out.push({ label: clean, tag: t.whoSavedHint }); }
+      if (clean && !seen[key]) {
+        seen[key] = true;
+        const isPreset = allDefaultsLower.indexOf(key) !== -1;
+        out.push({ label: clean, tag: isPreset ? t.whoPresetHint : t.whoSavedHint });
+      }
     });
     return out;
   }
 
   function registerRecipeTag(tagVal) {
-    const t = I18N[curLang];
     const clean = String(tagVal || "").trim();
     if (!clean) return;
-    const defaults = (t.defaultRecipeTags || []).map(function(x) { return String(x).toLowerCase(); });
+    const allDefaultsLower = getAllDefaultRecipeTagsLower();
     const customs = (state.customRecipeTags || []).map(function(x) { return String(x).toLowerCase(); });
-    if (defaults.indexOf(clean.toLowerCase()) === -1 && customs.indexOf(clean.toLowerCase()) === -1) {
+    if (allDefaultsLower.indexOf(clean.toLowerCase()) === -1 && customs.indexOf(clean.toLowerCase()) === -1) {
       state.customRecipeTags.push(clean);
     }
   }
