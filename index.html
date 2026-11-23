@@ -398,7 +398,7 @@
       shNamePh: "品項名稱（例：牛奶、雞蛋）", shQtyPh: "數量（例：2 瓶）",
       filterAllShopCat: "全部商場", btnJoin: "加入", btnClearDone: "清除已買",
       hAddRecipe: "新增家庭食譜", hEditRecipe: "編輯家庭食譜", hRecipeList: "食譜清單",
-      defaultRecipeTags: ["家常菜", "煎炒", "湯品", "烘焙點心", "便當菜"],
+      defaultRecipeTags: ["煎炒", "湯品", "烘烤"],
       rcTitlePh: "料理名稱", rcTagPh: "分類（點選或打字新增，例：家常菜）",
       rcIngPh: "食材清單（每行一項）", rcStepsPh: "料理步驟與秘訣...",
       rcSearchPh: "搜尋菜名、食材或步驟...", filterAllRecipeTag: "全部分類",
@@ -483,7 +483,7 @@
       shNamePh: "Artikel (z.B. Milch)", shQtyPh: "Menge (z.B. 2x)",
       filterAllShopCat: "Alle Geschäfte", btnJoin: "Hinzufügen", btnClearDone: "Erledigte löschen",
       hAddRecipe: "Neues Rezept", hEditRecipe: "Rezept bearbeiten", hRecipeList: "Rezepte",
-      defaultRecipeTags: ["Alltag", "Pfanne", "Suppe", "Backen", "Meal Prep"],
+      defaultRecipeTags: ["Pfanne", "Suppe", "Backen"],
       rcTitlePh: "Gerichtname", rcTagPh: "Kategorie (wählen oder neu eingeben)",
       rcIngPh: "Zutaten (eine pro Zeile)", rcStepsPh: "Zubereitung...",
       rcSearchPh: "Gericht, Zutat oder Schritt suchen...", filterAllRecipeTag: "Alle Kategorien",
@@ -1046,7 +1046,29 @@
   };
 
   window.clearPastEvents = function() {
-    gcalCache = gcalCache.filter(function(ev) { return !ev.date || dayDiff(ev.date) >= 0; });
+    const keptLocal = [];
+    (state.events || []).forEach(function(ev) {
+      if (!ev.date || dayDiff(ev.date) >= 0) {
+        keptLocal.push(ev);
+      } else {
+        selectedEventKeys.delete("local:" + String(ev.id));
+        if (editingEventId !== null && String(editingEventId) === String(ev.id)) {
+          resetEventForm();
+        }
+      }
+    });
+    state.events = keptLocal;
+
+    const keptGcal = [];
+    (gcalCache || []).forEach(function(ev) {
+      if (!ev.date || dayDiff(ev.date) >= 0) {
+        keptGcal.push(ev);
+      } else {
+        selectedEventKeys.delete("gcal:" + String(ev.id));
+      }
+    });
+    gcalCache = keptGcal;
+
     saveState();
   };
 
