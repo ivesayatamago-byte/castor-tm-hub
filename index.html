@@ -1216,11 +1216,19 @@
     const clean = String(val || "").trim();
     if (!clean) return;
     registerRecipeTag(clean);
-    document.getElementById("rcTag").value = clean;
+    const inp = document.getElementById("rcTag");
+    if (inp) inp.value = clean;
     const dd = document.getElementById("rcTagDropdown");
     if (dd) dd.classList.remove("open");
     refreshRecipeTagFilter();
   };
+
+  window.onPickRecipeTag = function(ev, el) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    const val = el && el.dataset ? el.dataset.val : "";
+    if (val) window.selectRecipeTag(val);
+  };
+
   window.delCustomRecipeTag = function(ev, val) {
     if (ev && ev.stopPropagation) ev.stopPropagation();
     const target = String(val || "").trim().toLowerCase();
